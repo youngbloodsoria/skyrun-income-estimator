@@ -1,0 +1,734 @@
+<!doctype html><html lang="en">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>SkyRun Brian Head | Income Estimator (v7f13a)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--blue:#0077C8;--green:#6CB33F;--yellow:#FDB813;--charcoal:#1f2937;--line:#e5e7eb;}
+  *{box-sizing:border-box} body{margin:0;background:#f6f8fb;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111}
+  .wrap{max-width:1120px;margin:0 auto;padding:20px}
+  .header{display:flex;gap:14px;align-items:center}
+  .logo{height:56px;width:auto;object-fit:contain}
+  .title{font-size:28px;font-weight:800;color:#1f2937}
+  .subtle{color:#6b7280;font-size:12px}
+  .cover,.controls,.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+  .btn{background:linear-gradient(135deg,var(--blue),#31b5ff);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+  .kvgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
+  .kv{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px}
+  .kv b{display:block;font-size:11px;color:#374151;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px}
+  .kv span{font-size:15px;font-weight:700}
+  .inputs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media (max-width: 900px){ .inputs{grid-template-columns:1fr} .grid2{grid-template-columns:1fr} .kpis{grid-template-columns:1fr 1fr} .kvgrid{grid-template-columns:1fr 1fr} }
+  label{font-size:13px;color:#111;display:block;margin-bottom:6px;font-weight:700}
+  input[type="text"],input[type="email"],input[type="number"],select,textarea{width:100%;border:2px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px;background:#fff}
+  select.big{font-size:16px;height:48px}
+  textarea{min-height:68px;resize:vertical}
+  .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px}
+  .tile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .tile .tt{font-size:11px;color:#374151;text-transform:uppercase;letter-spacing:.04em}
+  .tile .vv{font-size:22px;font-weight:800;color:#1f2937;margin-top:4px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+  .imgbox{border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:#000;display:flex;align-items:center;justify-content:center}
+  .imgbox img{width:100%;height:100%;object-fit:cover}
+  .badge{display:inline-block;font-size:12px;border:1px solid var(--line);background:#f9fafb;padding:4px 8px;border-radius:999px}
+  table{width:100%;border-collapse:collapse;font-size:13px} th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right}
+  th:first-child,td:first-child{text-align:left} .notes{white-space:pre-wrap;background:#fff;border:1px dashed var(--line);border-radius:12px;padding:10px;min-height:64px}
+  .why{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#f8fafc}
+  .footer{margin-top:12px;font-size:12px;color:var(--blue)}
+  .table-mini{font-size:12px; margin-top:8px}
+  .table-mini td, .table-mini th{padding:4px 6px}
+  canvas { pointer-events:none; touch-action: pan-y; }
+  .controls, .inputs, input, select, textarea, .btn { position: relative; z-index: 10; }
+  #stayChart, #bookCurve { position: relative; z-index: 0; }
+  .print-header{display:none !important}
+  @page { size: Letter; margin: 0.5in; }
+  @media print { body{background:#fff} .controls .inputs, .controls .row .btn, .controls input[type='file']{display:none!important}
+    .wrap{max-width:none;padding:0.25in} .print-header{display:none; position:fixed; top:0; left:0; right:0; padding:6px 0.25in; border-bottom:1px solid var(--line); background:#fff}
+    .print-header img{height:28px; width:auto; object-fit:contain; image-rendering:-webkit-optimize-contrast}
+    .page-body{margin-top:44px} .card, .cover{break-inside:avoid} }
+
+  .imgbox iframe{width:100%;height:100%;border:0}
+  @media print { .imgbox{height:320px} .imgbox iframe{width:100%;height:100%} }
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+// Show the email modal right after printing completes (more reliable than setTimeout)
+window.addEventListener('afterprint', ()=>{
+  const modal = document.getElementById('emailModal');
+  if (modal) modal.style.display = 'flex';
+});
+
+// Fallback for mobile browsers that don't fire 'afterprint'
+(function(){
+  let printing = false;
+  const btn = document.getElementById('printBtn');
+  if (!btn) return;
+  btn.addEventListener('click', ()=>{
+    if (printing) return;
+    printing = true;
+    setTimeout(()=>{
+      const modal = document.getElementById('emailModal');
+      if (modal && modal.style.display !== 'flex') modal.style.display = 'flex';
+      printing = false;
+    }, 1800);
+  });
+})();
+
+
+// --- Address-to-Map fallback (no API key) ---
+// If no photo is uploaded, we fetch a lat/lon via OpenStreetMap Nominatim and show a static map image.
+// Note: Meant for light usage only.
+let addrDebounce = null;
+let userPhotoChosen = false;
+
+function refreshMapForAddress(addr) {
+  if (!addr || userPhotoChosen) return;
+  // Geocode via Nominatim
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`;
+  fetch(url, { headers: { /* browsers won't allow custom UA; referer suffices */ } })
+    .then(r => r.json())
+    .then(results => {
+      if (!Array.isArray(results) || results.length === 0) return;
+      const { lat, lon } = results[0];
+      if (!lat || !lon) return;
+      // Static map (OpenStreetMap.de)
+      const staticUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=14&size=1200x675&maptype=mapnik&markers=${lat},${lon},lightblue1`;
+      setPhotoSrc(staticUrl);
+      document.getElementById('photoHint').textContent = 'Showing map preview from address — upload a photo to override.';
+    })
+    .catch(_ => {});
+}
+
+// Hook address changes
+(function(){
+  const addrEl = document.getElementById('addr');
+  if (!addrEl) return;
+  const handler = () => {
+    const addr = addrEl.value.trim();
+    if (addrDebounce) clearTimeout(addrDebounce);
+    addrDebounce = setTimeout(() => refreshMapForAddress(addr), 800);
+  };
+  addrEl.addEventListener('input', handler);
+  addrEl.addEventListener('change', handler);
+})();
+
+// Photo upload overrides map
+(function(){
+  const fileEl = document.getElementById('photoFile');
+  if (!fileEl) return;
+  fileEl.addEventListener('change', () => { userPhotoChosen = !!(fileEl.files && fileEl.files.length); });
+})();
+
+// Also try once at init if address is prefilled
+(function initAddrMap(){
+  try {
+    const addr = (document.getElementById('addr')?.value || '').trim();
+    if (addr) refreshMapForAddress(addr);
+  } catch {}
+})();
+
+
+// --- Augmented map handling (keeps existing OSM static fallback) ---
+let __userPhotoChosen = false;
+(function enhanceMap(){
+  try {
+    const img = document.getElementById('photoView');
+    const iframe = document.getElementById('mapFrame');
+    const addrEl = document.getElementById('addr');
+    const fileEl = document.getElementById('photoFile');
+    if (!img || !iframe || !addrEl) return;
+
+    // Mark when a user has chosen a photo so we don't override with map
+    if (fileEl) {
+      fileEl.addEventListener('change', () => {
+        __userPhotoChosen = !!(fileEl.files && fileEl.files.length);
+        if (__userPhotoChosen) {
+          iframe.style.display = 'none';
+          img.style.display = 'block';
+          const hint = document.getElementById('photoHint');
+          if (hint) hint.textContent = 'Using uploaded photo.';
+        }
+      });
+    }
+
+    function showGoogleEmbed(addr){
+      if (!addr || __userPhotoChosen) return false;
+      try {
+        const src = "https://www.google.com/maps?q=" + encodeURIComponent(addr) + "&output=embed";
+        iframe.src = src;
+        iframe.style.display = 'block';
+        img.style.display = 'none';
+        const hint = document.getElementById('photoHint');
+        if (hint) hint.textContent = 'Showing Google Maps — upload a photo to override.';
+        return true;
+      } catch(e) { return false; }
+    }
+
+    // When address changes, try Google embed first; if that fails, let existing OSM fallback handle it
+    let t=null;
+    const onAddr = () => {
+      const addr = addrEl.value.trim();
+      if (t) clearTimeout(t);
+      t = setTimeout(()=>{
+        if (!showGoogleEmbed(addr)) {
+          // Fall back to existing OSM code if defined
+          if (typeof refreshMapForAddress === 'function') {
+            refreshMapForAddress(addr);
+          }
+        }
+      }, 500);
+    };
+    addrEl.addEventListener('input', onAddr);
+    addrEl.addEventListener('change', onAddr);
+
+    // Try once on load if address prefilled
+    const pre = addrEl.value.trim();
+    if (pre) { showGoogleEmbed(pre); }
+  } catch(e) { /* silent */ }
+})();
+
+</script>
+</head>
+<body>
+  <!-- PRINT-ONLY HEADER WITH LOGO -->
+  <div class="print-header"></div>
+
+  <div class="wrap page-body">
+    <!-- On-screen header WITH logo (per your screenshot) -->
+    <div class="header">
+      <img class="logo" src="data:image/png;base64,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" alt="SkyRun Brian Head Logo">
+      <div>
+        <div class="title">SkyRun Brian Head | Income Estimator</div>
+        <div class="subtle">Bedrooms drive curves • Style nudges visible • Booking lead-time curve</div>
+      </div>
+    </div>
+
+    <div class="cover">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+        <div style="font-size:22px;font-weight:800;color:#1f2937">Projected Short-Term Rental Performance</div>
+        <button class="btn" id="printBtn">Download PDF</button>
+      </div>
+      <div class="kvgrid">
+        <div class="kv"><b>Owner</b><span id="cvOwner">—</span></div>
+        <div class="kv"><b>Property Address</b><span id="cvAddr">—</span></div>
+        <div class="kv"><b>Market</b><span id="cvMarket">Brian Head</span></div>
+        <div class="kv"><b>As of</b><span id="cvDate">—</span></div>
+      </div>
+      <div class="kvgrid" style="margin-top:8px">
+        <div class="kv"><b>Base Rate</b><span id="cvRate">$—</span></div>
+        <div class="kv"><b>Occupancy</b><span id="cvOcc">—%</span></div>
+        <div class="kv"><b>Mgmt Fee</b><span id="cvFee">29.7%</span></div>
+        <div class="kv"><b>Avg Achieved Nightly</b><span id="cvANR">$—</span></div>
+      </div>
+      <div class="why" style="margin-top:12px">
+        <div style="font-weight:800;margin-bottom:6px">Why Partner with SkyRun Brian Head</div>
+        <ul>
+          <li><b>Professional, full-service management</b> focused on guest experience and owner success</li>
+          <li><b>Hotel-grade cleaning standards</b> and consistent property care</li>
+          <li><b>Local, full-time staff</b> living in or near Brian Head — always close when you need us</li>
+          <li><b>Comprehensive damage protection</b> beyond OTA coverage</li>
+          <li><b>Robust liability insurance</b> protecting you and your property</li>
+          <li><b>Certified pool and spa technicians</b> at transparent, affordable rates</li>
+          <li><b>Strong local partnerships</b> with <b>Brian Head Town</b>, Cedar City, and Southern Utah University</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="inputs">
+        <div>
+          <label>Market / Location</label>
+          <select id="market" class="big">
+            <option value="brianhead" selected>Brian Head (data-driven)</option>
+            <option value="duckcreek">Duck Creek</option>
+            <option value="panguitch">Panguitch / Panguitch Lake</option>
+          </select>
+        </div>
+        <div>
+          <label>Bedrooms (drives curves & seasonality)</label>
+          <select id="bedBucket" class="big">
+            <option>Studio</option><option selected>1BR</option><option>2BR</option><option>3BR</option><option>4+BR</option>
+          </select>
+        </div>
+        <div>
+          <label>Property Style (nudges booking curve)</label>
+          <select id="pstyle" class="big">
+            <option>Condo/Standard</option>
+            <option>Cabin/Chalet</option>
+            <option>Luxury</option>
+          </select>
+        </div>
+        <div>
+          <label>Base Rate (USD)</label>
+          <input id="baseRate" type="number" value="175" min="30" step="1"/>
+        </div>
+        <div>
+          <label>Expected Usage / Occupancy %</label>
+          <input id="occPct" type="number" value="38" min="10" max="95" step="1"/>
+        </div>
+        <div>
+          <label>Management Fee % (default 29.7)</label>
+          <input id="mgmtFee" type="number" value="29.7" min="0" max="60" step="0.1"/>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <label style="margin:0;display:flex;align-items:center;gap:8px"><input id="petToggle" type="checkbox"/> Allow Pets</label>
+          <span class="subtle" id="petNote">BH data shows +20% bookings if pet-friendly.</span>
+        </div>
+        <div>
+          <label>Owner Name</label>
+          <input id="ownerName" type="text" placeholder="e.g., Smith Family"/>
+        </div>
+        <div>
+          <label>Property Address</label>
+          <input id="addr" type="text" placeholder="e.g., 329 S Hwy 143, Brian Head, UT"/>
+        </div>
+        <div>
+          <label>Photo Upload</label>
+          <input id="photoFile" type="file" accept="image/*"/>
+        </div>
+        <div style="grid-column:1/-1">
+          <label>Key Notes</label>
+          <textarea id="notes" placeholder="Ski-in/ski-out • Private hot tub • Pets allowed with fee • 1-car garage"></textarea>
+        </div>
+      </div>
+
+      <div class="kpis">
+        <div class="tile"><div class="tt">Estimated Annual Gross</div><div class="vv" id="kpiGross">$0</div></div>
+        <div class="tile"><div class="tt">Nights Booked</div><div class="vv" id="kpiNights">0</div></div>
+        <div class="tile"><div class="tt">Avg Achieved Nightly</div><div class="vv" id="kpiANR">$0</div></div>
+        <div class="tile"><div class="tt">Occupancy</div><div class="vv" id="kpiOcc">0%</div></div>
+        <div class="tile"><div class="tt">Net to Owner (after fee)</div><div class="vv" id="kpiNet">$0</div></div>
+        <div class="tile"><div class="tt">Incremental Rev. (Pets)</div><div class="vv" id="kpiPet">$0</div></div>
+      </div>
+      <div class="subtle" id="petFoot" style="display:none;margin-top:6px">Based on Brian Head historical data, pet‑friendly units averaged <b>+20.3% more bookings</b> than non‑pet properties.</div>
+<div id="liabilityFoot" class="subtle" style="margin-top:6px;color:#374151;background:#F3F4F6;border-left:3px solid #0077C8;padding:8px 10px;border-radius:8px">
+  <div style="font-weight:700;margin-bottom:4px;color:#1f2937">Estimator Notes &amp; Disclaimer</div>
+  <div style="font-size:12px;line-height:1.4">
+    This tool provides directional estimates only and is not a promise or guarantee of future performance. Results depend on market conditions,
+    seasonality, property configuration, guest demand, owner usage, and pricing strategies. Inputs are provided by the user and may not reflect
+    all factors. Month‑by‑month seasonality patterns are based on available local data and generalized trends for Brian Head and nearby markets.
+    Actual results can vary materially. SkyRun Brian Head will refine forecasts once your property is onboarded and we see real demand signals.
+    <br/><b>Good news:</b> in Brian Head, we consistently beat the competition with professional marketing, dynamic pricing, and local, full‑time operations.
+  </div>
+</div>
+
+
+      <div class="grid2">
+        <div class="card">
+          <canvas id="stayChart" height="240"></canvas>
+          <div class="subtle" style="margin-top:6px">Revenue by month — uses seasonality for selected market & bedrooms.</div>
+        </div>
+        <div class="card">
+          <canvas id="bookCurve" height="240"></canvas>
+          <div class="subtle" style="margin-top:6px">Booking lead-time curve (CDF of bookings by days-before). Style affects curve.</div>
+          <table class="table-mini" id="curveTable">
+            <thead><tr><th style="text-align:left">Bucket</th><th>Share</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="sensCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
+          <div style="font-weight:800;color:#1f2937">Sensitivity Analysis — Based on Your Inputs</div>
+          <span class="badge">Gross only</span>
+        </div>
+        <div style="overflow:auto;margin-top:8px">
+          <table id="sensTable">
+            <thead>
+              <tr><th>Scenario</th><th>Occupancy</th><th>Avg Nightly Rate</th><th>Estimated Annual Gross</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="subtle" id="sensNote" style="margin-top:6px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row" style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap">
+          <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
+            <span class="badge" id="seasonBadge">Seasonality: Brian Head • Studio</span>
+            <span class="badge" id="bookBadge">Lead-time curve</span>
+          </div>
+          <button class="btn" id="downloadBtn">Download Monthly Forecast (CSV)</button>
+        </div>
+        <div style="overflow:auto;margin-top:8px">
+          <table id="monthlyTable">
+            <thead>
+              <tr><th>Month</th><th>Nights</th><th>Season Mult</th><th>Occ Nights</th><th>Rate</th><th>Revenue</th></tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr><td><b>Total</b></td><td id="t_nights">365</td><td></td><td id="t_occn">0</td><td id="t_rate"></td><td id="t_rev">$0</td></tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <div class="imgbox"><img id="photoView" alt="Property photo" referrerpolicy="no-referrer" crossorigin="anonymous" src=""/><iframe id="mapFrame" title="Property map" style="width:100%;height:100%;border:0;display:none" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>
+      <div class="subtle" id="photoHint" style="margin-top:6px">Upload a photo file for printing.</div>
+      <h3 style="margin:12px 0 6px 0;color:#1f2937">Key Notes</h3>
+      <div id="notesView" class="notes">No notes yet.</div>
+      <div class="footer">© SkyRun Brian Head — From SoCal to Brian Head. Updated: <span id="updatedStamp"></span></div>
+    </div>
+  </div>
+
+  <!-- Email modal (now opens AFTER print) -->
+  <div class="modal-bg" id="emailModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:16px;z-index:9999">
+    <div class="modal" style="background:#fff;border-radius:12px;border:1px solid var(--line);max-width:460px;width:100%;padding:16px">
+      <h3>Send a copy by email</h3>
+      <p class="subtle">We opened the print dialog so you can save a PDF.
+After saving, click **Yes** to open your email app with a draft to you and <b>brianhead@skyrun.com</b>. Please attach the PDF you just saved.</p>
+      <label>Your email</label>
+      <input id="emailInput" type="email" placeholder="you@example.com"/>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+        <button class="btn" id="emailCancel" style="background:#9CA3AF">No thanks</button>
+        <button class="btn" id="emailSend">Yes, create email draft</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+const beds = ["Studio","1BR","2BR","3BR","4+BR"];
+const seasonalityByBed = {"Studio":{"Jan":1.30,"Feb":1.25,"Mar":1.20,"Apr":0.80,"May":0.70,"Jun":0.80,"Jul":1.00,"Aug":0.85,"Sep":0.75,"Oct":0.70,"Nov":0.85,"Dec":1.40},
+"1BR":{"Jan":1.30,"Feb":1.25,"Mar":1.20,"Apr":0.80,"May":0.70,"Jun":0.80,"Jul":1.00,"Aug":0.85,"Sep":0.75,"Oct":0.70,"Nov":0.85,"Dec":1.40},
+"2BR":{"Jan":1.30,"Feb":1.25,"Mar":1.20,"Apr":0.80,"May":0.70,"Jun":0.80,"Jul":1.00,"Aug":0.85,"Sep":0.75,"Oct":0.70,"Nov":0.85,"Dec":1.40},
+"3BR":{"Jan":1.30,"Feb":1.25,"Mar":1.20,"Apr":0.80,"May":0.70,"Jun":0.80,"Jul":1.00,"Aug":0.85,"Sep":0.75,"Oct":0.70,"Nov":0.85,"Dec":1.40},
+"4+BR":{"Jan":1.30,"Feb":1.25,"Mar":1.20,"Apr":0.80,"May":0.70,"Jun":0.80,"Jul":1.00,"Aug":0.85,"Sep":0.75,"Oct":0.70,"Nov":0.85,"Dec":1.40}};
+const curvesByBed = {"Studio":[0.22,0.38,0.23,0.13,0.04],"1BR":[0.22,0.38,0.23,0.13,0.04],"2BR":[0.22,0.38,0.23,0.13,0.04],"3BR":[0.18,0.34,0.24,0.18,0.06],"4+BR":[0.12,0.32,0.26,0.22,0.08]};
+const duck = {"Jan":1.10,"Feb":1.10,"Mar":0.80,"Apr":0.85,"May":0.95,"Jun":1.30,"Jul":1.35,"Aug":1.30,"Sep":1.10,"Oct":0.85,"Nov":0.80,"Dec":1.10};
+const pang = {"Jan":0.70,"Feb":0.75,"Mar":0.90,"Apr":1.00,"May":1.10,"Jun":1.25,"Jul":1.30,"Aug":1.25,"Sep":1.05,"Oct":0.90,"Nov":0.80,"Dec":0.70};
+
+const daysInMonth = {Jan:31, Feb:28, Mar:31, Apr:30, May:31, Jun:30, Jul:31, Aug:31, Sep:30, Oct:31, Nov:30, Dec:31};
+const monthOrder = Object.keys(daysInMonth);
+const curveLabels = ["0-7d","8-30d","31-60d","61-120d","120d+"];
+const brand = { blue:"#0077C8", green:"#6CB33F", yellow:"#FDB813", charcoal:"#1f2937" };
+const PET_UPLIFT = 0.203; // +20.3% bookings uplift from BH data
+
+function fmtUSD(x){ return x.toLocaleString(undefined,{style:'currency',currency:'USD',maximumFractionDigits:0}); }
+
+let stayChart, leadChart;
+function renderStay(baseRate, occ, seasonality){
+  const ctxS = document.getElementById('stayChart');
+  const labels = monthOrder;
+  const data = labels.map(m => Math.round(daysInMonth[m]*occ) * (baseRate*(seasonality[m]||1)));
+  const colors = labels.map((m,i)=> i%3===0?brand.blue:(i%3===1?brand.green:brand.yellow));
+  if(stayChart) stayChart.destroy();
+  stayChart = new Chart(ctxS, {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Revenue by Month', data, backgroundColor: colors, borderColor: colors, borderWidth: 1 }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{ ticks:{ callback:(v)=>'$'+Math.round(v).toLocaleString() } } } }
+  });
+}
+
+function renderLeadCurve(curve){
+  const bucketMax=[7,30,60,120,180];
+  const xs=[], ys=[]; let cum=0;
+  for(let i=0;i<5;i++){ const start=(i===0)?0:bucketMax[i-1]; const end=bucketMax[i]; const share=curve[i]; const w=end-start||1; const inc=share/w; for(let d=start; d<=end; d++){ cum += inc; xs.push(d); ys.push(Math.min(100, Math.round(cum*100))); } }
+  const ctx = document.getElementById('bookCurve');
+  if(leadChart) leadChart.destroy();
+  leadChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels: xs, datasets:[{ label:'Cumulative bookings (%)', data: ys, borderColor: brand.blue, tension: 0.25 }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{ min:0, max:100, ticks:{ callback:(v)=>v+'%' }}, x:{ title:{display:true,text:'Days before arrival'} } } }
+  });
+}
+
+function updateCurveTable(curve){
+  const tb = document.querySelector('#curveTable tbody'); tb.innerHTML="";
+  for(let i=0;i<curveLabels.length;i++){ const tr=document.createElement('tr'); tr.innerHTML=`<td style='text-align:left'>${curveLabels[i]}</td><td>${Math.round(curve[i]*100)}%</td>`; tb.appendChild(tr); }
+}
+
+// Sensitivity uses user's inputs
+function renderSensitivityTable(bed){
+  const baseRate = Math.max(0, parseFloat(document.getElementById('baseRate').value||"0"));
+  const occInput = Math.max(0, Math.min(95, parseFloat(document.getElementById('occPct').value||"0")));
+  const occ = occInput/100;
+
+  const market = document.getElementById('market').value;
+  let season = seasonalityByBed[bed] || seasonalityByBed["1BR"];
+  if (market === 'duckcreek') season = duck; else if (market === 'panguitch') season = pang;
+  const avgMult = Object.values(season).reduce((a,b)=>a+(b||1),0)/12 || 1;
+
+  const rate_std = Math.max(10, baseRate * 0.12);
+  const occ_std  = 0.05;
+
+  const scenarios = [
+    {name:"Conservative", o: Math.max(0.05, occ - occ_std), r: Math.max(30, baseRate - rate_std)},
+    {name:"Expected",     o: Math.max(0.05, occ),           r: Math.max(30, baseRate)},
+    {name:"Optimistic",   o: Math.min(0.95, occ + occ_std), r: Math.max(30, baseRate + rate_std)},
+  ];
+
+  const tb = document.querySelector('#sensTable tbody'); tb.innerHTML="";
+  scenarios.forEach(s=>{
+    const occNights = Math.round(365 * s.o);
+    const avgRate   = s.r * avgMult;
+    const gross     = occNights * avgRate;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${s.name}</td><td>${Math.round(s.o*100)}%</td><td>${fmtUSD(avgRate)}</td><td>${fmtUSD(gross)}</td>`;
+    tb.appendChild(tr);
+  });
+
+  document.getElementById('sensNote').textContent =
+    `Based on your inputs (Base Rate ${fmtUSD(baseRate)}, Occ ${Math.round(occ*100)}%) and average seasonality ×${avgMult.toFixed(2)}. Variance uses ±5pp occupancy and ±${Math.round((rate_std/baseRate||0)*100)}% rate.`;
+}
+
+function recalc(){
+  const market = document.getElementById('market').value;
+  const bed = document.getElementById('bedBucket').value || beds[1];
+  const style = document.getElementById('pstyle').value || "Condo/Standard";
+  const baseRate = Math.max(0, parseFloat(document.getElementById('baseRate').value||"0"));
+  const occInput = Math.max(0, Math.min(95, parseFloat(document.getElementById('occPct').value||"0")));
+  const feePct = Math.max(0, Math.min(100, parseFloat(document.getElementById('mgmtFee').value||"29.7")));
+  const owner = (document.getElementById('ownerName').value||'').trim(); const addr=(document.getElementById('addr').value||'').trim();
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time';
+  const now = new Date().toLocaleString(undefined, { timeZone: tz });
+  const petOn = !!(document.getElementById('petToggle') && document.getElementById('petToggle').checked);
+  document.getElementById('cvOwner').textContent = owner || '—';
+  document.getElementById('cvAddr').textContent = addr || '—';
+  document.getElementById('cvDate').textContent = now;
+  document.getElementById('cvRate').textContent = fmtUSD(baseRate);
+  const occBase = (occInput>0 ? occInput/100 : 0.38);
+  const occ = Math.min(0.95, occBase * (petOn ? (1+PET_UPLIFT) : 1));
+  document.getElementById('cvOcc').textContent = Math.round(occ*100) + "%";
+  document.getElementById('cvFee').textContent = (Math.round(feePct*10)/10).toFixed(1) + "%";
+  document.getElementById('updatedStamp').textContent = `${now} (${tz})`;
+
+  // seasonality by market
+  let seasonality = seasonalityByBed[bed] || seasonalityByBed["1BR"];
+  if (market === 'duckcreek') seasonality = duck; else if (market === 'panguitch') seasonality = pang;
+
+  // curve & style nudge
+  let curve = (curvesByBed[bed] || curvesByBed["1BR"]).slice();
+  function shift(fromIdx,toIdx,p){ const amt=Math.min(curve[fromIdx],p); curve[fromIdx]-=amt; curve[toIdx]+=amt; }
+  if(style==="Luxury"){ shift(1,2,0.06); shift(0,1,0.03); shift(3,4,0.01); }
+  else if(style==="Cabin/Chalet"){ shift(1,2,0.03); shift(0,1,0.02); }
+  const ssum = curve.reduce((a,b)=>a+b,0)||1; curve = curve.map(x=>x/ssum);
+
+  // monthly table + KPIs
+  const tbody = document.querySelector('#monthlyTable tbody'); tbody.innerHTML = "";
+  let totalOccNights=0, totalRev=0, weightedRateSum=0;
+  let baseRev=0;
+  monthOrder.forEach(m=>{
+    const nights=daysInMonth[m]; const mult=seasonality[m]||1; const rate=baseRate*mult; const occN=Math.round(nights*occ); const rev=rate*occN;
+    totalOccNights+=occN; totalRev+=rev; weightedRateSum+=rate*occN;
+    const baseOccN=Math.round(nights*(occBase)); baseRev+=rate*baseOccN;
+    const tr=document.createElement('tr'); tr.innerHTML=`<td>${m}</td><td>${nights}</td><td>${mult.toFixed(2)}×</td><td>${occN}</td><td>${fmtUSD(rate)}</td><td>${fmtUSD(rev)}</td>`; tbody.appendChild(tr);
+  });
+  const avgAchieved = totalOccNights>0 ? (weightedRateSum/totalOccNights) : 0;
+
+  const feeAmt = totalRev * (feePct/100), net = totalRev - feeAmt;
+  const incr = Math.max(0, totalRev - baseRev);
+  document.getElementById('kpiGross').textContent = fmtUSD(totalRev);
+  document.getElementById('kpiNights').textContent = totalOccNights.toLocaleString();
+  document.getElementById('kpiANR').textContent = fmtUSD(avgAchieved);
+  document.getElementById('kpiOcc').textContent = Math.round(occ*100)+"%";
+  document.getElementById('kpiNet').textContent = fmtUSD(net);
+  document.getElementById('kpiPet').textContent = fmtUSD(incr);
+  document.getElementById('t_occn').textContent = totalOccNights.toLocaleString();
+  document.getElementById('t_rev').textContent = fmtUSD(totalRev);
+  document.getElementById('t_rate').textContent = avgAchieved ? fmtUSD(avgAchieved) : '';
+  document.getElementById('cvANR').textContent = avgAchieved ? fmtUSD(avgAchieved) : '$—';
+
+  // badges
+  const seasonLabel = (market==='brianhead') ? `Brian Head • ${bed}` : (market==='duckcreek'?'Duck Creek':'Panguitch / Panguitch Lake');
+  document.getElementById('seasonBadge').textContent = `Seasonality: ${seasonLabel}`;
+  document.getElementById('bookBadge').textContent = `Lead-time curve: ${bed} • ${style}`;
+
+  // notes mirror
+  const notesVal = (document.getElementById('notes').value||'').trim();
+  document.getElementById('notesView').textContent = notesVal ? notesVal : 'No notes yet.';
+
+  // charts & tables
+  renderStay(baseRate, occ, seasonality);
+  renderLeadCurve(curve);
+  updateCurveTable(curve);
+  renderSensitivityTable(bed);
+
+  // Pet note + footnote visibility
+  const petNote = document.getElementById('petNote');
+  if (petNote) petNote.textContent = petOn ? `Using +${Math.round(PET_UPLIFT*100)}% bookings uplift from BH data.` : `BH data shows +${Math.round(PET_UPLIFT*100)}% bookings if pet‑friendly.`;
+  const petFoot = document.getElementById('petFoot');
+  if (petFoot) petFoot.style.display = petOn ? 'block' : 'none';
+}
+
+// CSV export
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  const rows = [["Month","Nights","SeasonMult","OccNights","Rate","Revenue"]];
+  const baseRate = Math.max(0, parseFloat(document.getElementById('baseRate').value||"0"));
+  const occ = Math.min(0.95, Math.max(0, (parseFloat(document.getElementById('occPct').value||"0")/100)||0));
+  const market = document.getElementById('market').value;
+  const bed = document.getElementById('bedBucket').value || beds[1];
+  let seasonality = seasonalityByBed[bed] || seasonalityByBed["1BR"];
+  if (market === 'duckcreek') seasonality = duck; else if (market === 'panguitch') seasonality = pang;
+  monthOrder.forEach(m=>{ const nights=daysInMonth[m], mult=seasonality[m]||1, rate=baseRate*mult, occN=Math.round(nights*occ), rev=rate*occN; rows.push([m, nights, mult.toFixed(2), occN, rate.toFixed(2), rev.toFixed(2)]); });
+  const csv = rows.map(r=>r.join(",")).join("\n");
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv"})); a.download = "skyrun_monthly_forecast.csv"; a.click();
+});
+
+// Photo upload only
+function setPhotoSrc(url){ const img = document.getElementById('photoView'); img.onerror = ()=>{}; img.src = url; }
+document.getElementById('photoFile').addEventListener('change', e=>{ const f=e.target.files&&e.target.files[0]; if(!f) return; const reader=new FileReader(); reader.onload=ev=>setPhotoSrc(ev.target.result); reader.readAsDataURL(f); });
+
+// Email modal now AFTER print
+const modal = document.getElementById('emailModal');
+document.getElementById('printBtn').addEventListener('click', ()=>{ window.print(); });
+document.getElementById('emailCancel').addEventListener('click', ()=>{ modal.style.display='none'; });
+document.getElementById('emailSend').addEventListener('click', ()=>{
+  const email = (document.getElementById('emailInput').value||'').trim();
+  modal.style.display='none';
+  const to = encodeURIComponent([email, 'brianhead@skyrun.com'].filter(Boolean).join(','));
+  const subject = encodeURIComponent('SkyRun Income Estimator — PDF attached');
+  const body = encodeURIComponent('Hi SkyRun Brian Head,%0D%0A%0D%0APlease find my estimator PDF attached.%0D%0A%0D%0AThanks!');
+  window.location.href = `mailto:${to}?subject=${subject}&body=${body}`;
+});
+
+// Live updates
+["market","bedBucket","pstyle","baseRate","occPct","mgmtFee","ownerName","addr","notes","petToggle"].forEach(id=>{ const el=document.getElementById(id); el.addEventListener('input', recalc); el.addEventListener('change', recalc); });
+
+(function init(){
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time';
+  const now = new Date().toLocaleString(undefined, { timeZone: tz });
+  document.getElementById('updatedStamp').textContent = `${now} (${tz})`;
+  recalc();
+})();
+
+// Show the email modal right after printing completes (more reliable than setTimeout)
+window.addEventListener('afterprint', ()=>{
+  const modal = document.getElementById('emailModal');
+  if (modal) modal.style.display = 'flex';
+});
+
+// Fallback for mobile browsers that don't fire 'afterprint'
+(function(){
+  let printing = false;
+  const btn = document.getElementById('printBtn');
+  if (!btn) return;
+  btn.addEventListener('click', ()=>{
+    if (printing) return;
+    printing = true;
+    setTimeout(()=>{
+      const modal = document.getElementById('emailModal');
+      if (modal && modal.style.display !== 'flex') modal.style.display = 'flex';
+      printing = false;
+    }, 1800);
+  });
+})();
+
+
+// --- Address-to-Map fallback (no API key) ---
+// If no photo is uploaded, we fetch a lat/lon via OpenStreetMap Nominatim and show a static map image.
+// Note: Meant for light usage only.
+let addrDebounce = null;
+let userPhotoChosen = false;
+
+function refreshMapForAddress(addr) {
+  if (!addr || userPhotoChosen) return;
+  // Geocode via Nominatim
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`;
+  fetch(url, { headers: { /* browsers won't allow custom UA; referer suffices */ } })
+    .then(r => r.json())
+    .then(results => {
+      if (!Array.isArray(results) || results.length === 0) return;
+      const { lat, lon } = results[0];
+      if (!lat || !lon) return;
+      // Static map (OpenStreetMap.de)
+      const staticUrl = `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lon}&zoom=14&size=1200x675&maptype=mapnik&markers=${lat},${lon},lightblue1`;
+      setPhotoSrc(staticUrl);
+      document.getElementById('photoHint').textContent = 'Showing map preview from address — upload a photo to override.';
+    })
+    .catch(_ => {});
+}
+
+// Hook address changes
+(function(){
+  const addrEl = document.getElementById('addr');
+  if (!addrEl) return;
+  const handler = () => {
+    const addr = addrEl.value.trim();
+    if (addrDebounce) clearTimeout(addrDebounce);
+    addrDebounce = setTimeout(() => refreshMapForAddress(addr), 800);
+  };
+  addrEl.addEventListener('input', handler);
+  addrEl.addEventListener('change', handler);
+})();
+
+// Photo upload overrides map
+(function(){
+  const fileEl = document.getElementById('photoFile');
+  if (!fileEl) return;
+  fileEl.addEventListener('change', () => { userPhotoChosen = !!(fileEl.files && fileEl.files.length); });
+})();
+
+// Also try once at init if address is prefilled
+(function initAddrMap(){
+  try {
+    const addr = (document.getElementById('addr')?.value || '').trim();
+    if (addr) refreshMapForAddress(addr);
+  } catch {}
+})();
+
+
+// --- Augmented map handling (keeps existing OSM static fallback) ---
+let __userPhotoChosen = false;
+(function enhanceMap(){
+  try {
+    const img = document.getElementById('photoView');
+    const iframe = document.getElementById('mapFrame');
+    const addrEl = document.getElementById('addr');
+    const fileEl = document.getElementById('photoFile');
+    if (!img || !iframe || !addrEl) return;
+
+    // Mark when a user has chosen a photo so we don't override with map
+    if (fileEl) {
+      fileEl.addEventListener('change', () => {
+        __userPhotoChosen = !!(fileEl.files && fileEl.files.length);
+        if (__userPhotoChosen) {
+          iframe.style.display = 'none';
+          img.style.display = 'block';
+          const hint = document.getElementById('photoHint');
+          if (hint) hint.textContent = 'Using uploaded photo.';
+        }
+      });
+    }
+
+    function showGoogleEmbed(addr){
+      if (!addr || __userPhotoChosen) return false;
+      try {
+        const src = "https://www.google.com/maps?q=" + encodeURIComponent(addr) + "&output=embed";
+        iframe.src = src;
+        iframe.style.display = 'block';
+        img.style.display = 'none';
+        const hint = document.getElementById('photoHint');
+        if (hint) hint.textContent = 'Showing Google Maps — upload a photo to override.';
+        return true;
+      } catch(e) { return false; }
+    }
+
+    // When address changes, try Google embed first; if that fails, let existing OSM fallback handle it
+    let t=null;
+    const onAddr = () => {
+      const addr = addrEl.value.trim();
+      if (t) clearTimeout(t);
+      t = setTimeout(()=>{
+        if (!showGoogleEmbed(addr)) {
+          // Fall back to existing OSM code if defined
+          if (typeof refreshMapForAddress === 'function') {
+            refreshMapForAddress(addr);
+          }
+        }
+      }, 500);
+    };
+    addrEl.addEventListener('input', onAddr);
+    addrEl.addEventListener('change', onAddr);
+
+    // Try once on load if address prefilled
+    const pre = addrEl.value.trim();
+    if (pre) { showGoogleEmbed(pre); }
+  } catch(e) { /* silent */ }
+})();
+
+</script>
+</body></html>
