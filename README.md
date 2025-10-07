@@ -1,23 +1,15 @@
-# SkyRun Brian Head — Income Estimator (v7f11)
+# SkyRun Brian Head — Income Estimator (v7f12)
 
-Final build with **single on-page logo only** (no duplicate logo in printed PDFs).  
-Footer: **© SkyRun Brian Head — From SoCal to Brian Head. Updated: [timestamp] ([timezone])**.
+Update: **Print → Email modal** now uses the `afterprint` event for reliability on GitHub Pages and desktop/mobile browsers, with a fallback timer.
 
 ## Contents
-- `index.html` — main app (same as `SkyRun_Income_Estimator_v7f11.html`).
-- `SkyRun_Income_Estimator_v7f11.html` — versioned copy.
-- `SkyRun_Vertical_Full_Color_brian_head.png` — logo file (not required at runtime but included for reference).
+- `index.html` — main app (same as `SkyRun_Income_Estimator_v7f12.html`).
+- `SkyRun_Income_Estimator_v7f12.html` — versioned copy.
+- `SkyRun_Vertical_Full_Color_brian_head.png` — logo for reference.
 
-## Run locally
-Open `index.html` in your browser.
-
-## Publish on GitHub Pages (free)
-1. Create a repo, e.g. `skyrun-brianhead-estimator`.
-2. Upload the **files inside** this folder (at least `index.html`).
-3. In repo Settings → Pages: Source = **Deploy from a branch**, Branch = **main** (root).
-4. Your site will be live at `https://<your-user-or-org>.github.io/<repo>/`.
+## Deploy (GitHub Pages)
+Upload the files inside this folder to your repo root and enable Pages (main branch, root).
 
 ## Notes
-- **Download PDF** opens the browser print dialog; save as PDF.
-- After saving, an email draft opens to **you + brianhead@skyrun.com**. Attach the saved PDF (browsers can’t auto-attach files).
-- Pets uplift, sensitivity table, charts, CSV export, and all inputs work on desktop & mobile.
+- Click **Download PDF** → the browser opens the **Print** dialog. After you save, the **email modal** appears automatically.
+- Some mobile browsers don’t fire `afterprint`; a small fallback timer ensures the modal still appears.
