@@ -1,84 +1,23 @@
-# 🏔️ SkyRun Brian Head | Income Estimator
+# SkyRun Brian Head — Income Estimator (v7f11)
 
-This interactive **Short-Term Rental Income Estimator** was developed for **SkyRun Brian Head** to help property owners and partners project potential rental income based on market-specific data, occupancy, and seasonality.
+Final build with **single on-page logo only** (no duplicate logo in printed PDFs).  
+Footer: **© SkyRun Brian Head — From SoCal to Brian Head. Updated: [timestamp] ([timezone])**.
 
----
+## Contents
+- `index.html` — main app (same as `SkyRun_Income_Estimator_v7f11.html`).
+- `SkyRun_Income_Estimator_v7f11.html` — versioned copy.
+- `SkyRun_Vertical_Full_Color_brian_head.png` — logo file (not required at runtime but included for reference).
 
-## 🔧 Features
+## Run locally
+Open `index.html` in your browser.
 
-- 📊 **Dynamic income forecasting**
-  - Adjusts automatically by **Base Rate**, **Occupancy**, **Bedrooms**, and **Property Style**
-- 📅 **Real booking & seasonality patterns**
-  - Brian Head, Duck Creek, and Panguitch Lake data-driven models
-- 💡 **Sensitivity Analysis**
-  - Estimates Conservative, Expected, and Optimistic outcomes
-- 📈 **Interactive Charts**
-  - Revenue by month
-  - Booking lead-time curve
-- 🏡 **Owner-friendly interface**
-  - Editable property photo, notes, and live export to CSV
-- 🖨️ **Print to PDF**
-  - Generates polished one-page property reports for owners
+## Publish on GitHub Pages (free)
+1. Create a repo, e.g. `skyrun-brianhead-estimator`.
+2. Upload the **files inside** this folder (at least `index.html`).
+3. In repo Settings → Pages: Source = **Deploy from a branch**, Branch = **main** (root).
+4. Your site will be live at `https://<your-user-or-org>.github.io/<repo>/`.
 
----
-
-## 🌐 Hosting
-
-This tool is a **static HTML file**, so it can be hosted anywhere.  
-For GitHub Pages:
-
-1. Upload `index.html` to the repo root.
-2. Go to **Settings → Pages → Build and Deployment**.
-3. Set **Source = Deploy from a branch**, and choose **Branch = main / (root)**.
-4. GitHub Pages will auto-deploy your site.
-
-🔗 Once live, it’ll be accessible at:
-```
-https://<your-username>.github.io/skyrun-income-estimator/
-```
-
----
-
-## 🧠 Maintenance & Customization
-
-To update local branding or settings:
-
-| Section | Description | File/Tag to Edit |
-|----------|--------------|------------------|
-| **Logo** | SkyRun Brian Head vertical logo | `<img class="logo">` in HTML |
-| **Management Fee** | Default is `29.7%` | `mgmtFee` input value |
-| **Seasonality Models** | Based on 3 regions | Update `seasonalityByBed`, `duck`, or `pang` objects in script |
-| **Style Colors** | SkyRun palette (blue, green, yellow) | CSS root variables |
-
-No build tools required — just edit and push.
-
----
-
-## 🧩 Embedding on the Main Website
-
-This estimator can be embedded or linked directly on the Brian Head website.
-
-**Option 1:** Add a link in the nav menu  
-```
-https://<your-username>.github.io/skyrun-income-estimator/
-```
-
-**Option 2:** Embed via `<iframe>`  
-```html
-<iframe src="https://<your-username>.github.io/skyrun-income-estimator/" width="100%" height="1200" style="border:none;"></iframe>
-```
-
----
-
-## 👥 Contact
-
-**Developed by:**  
-_Alexander Youngblood Soria_  
-SkyRun Brian Head | Operations & Data  
-
-📧 [alex@skyrunbrianhead.com](mailto:alex@skyrunbrianhead.com)  
-🌎 [https://skyrunbrianhead.com](https://skyrunbrianhead.com)
-
----
-
-> _“Creating memories, simplifying ownership.”_
+## Notes
+- **Download PDF** opens the browser print dialog; save as PDF.
+- After saving, an email draft opens to **you + brianhead@skyrun.com**. Attach the saved PDF (browsers can’t auto-attach files).
+- Pets uplift, sensitivity table, charts, CSV export, and all inputs work on desktop & mobile.
