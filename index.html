@@ -11,19 +11,21 @@
 <style>
   :root{--blue:#0077C8;--green:#6CB33F;--yellow:#FDB813;--charcoal:#1f2937;--line:#e5e7eb;}
   *{box-sizing:border-box} body{margin:0;background:#f6f8fb;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111}
-  .wrap{max-width:1120px;margin:0 auto;padding:20px}
+  .wrap{max-width:1280px;margin:0 auto;padding:20px}
   .header{display:flex;gap:14px;align-items:center}
   .logo{height:56px;width:auto;object-fit:contain}
   .title{font-size:28px;font-weight:800;color:#1f2937}
   .subtle{color:#6b7280;font-size:12px}
   .cover,.controls,.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:12px}
+  .controls{background:linear-gradient(180deg,#f0f9ff 0%,#ffffff 100%);border:2px solid #0077C8;box-shadow:0 10px 25px rgba(0,119,200,.12)}
   .btn{background:linear-gradient(135deg,var(--blue),#31b5ff);color:#fff;border:none;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
   .kvgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px}
   .kv{background:#f8fafc;border:1px solid var(--line);border-radius:10px;padding:10px}
   .kv b{display:block;font-size:11px;color:#374151;letter-spacing:.04em;text-transform:uppercase;margin-bottom:4px}
   .kv span{font-size:15px;font-weight:700}
-  .inputs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .inputs{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   @media (max-width: 900px){ .inputs{grid-template-columns:1fr} .grid2{grid-template-columns:1fr} .kpis{grid-template-columns:1fr 1fr} .kvgrid{grid-template-columns:1fr 1fr} }
+  @media (min-width: 901px) and (max-width: 1200px){ .inputs{grid-template-columns:repeat(2,1fr)} }
   label{font-size:13px;color:#111;display:block;margin-bottom:6px;font-weight:700}
   input[type="text"],input[type="email"],input[type="number"],select,textarea{width:100%;border:2px solid var(--line);border-radius:10px;padding:10px 12px;font-size:16px;background:#fff}
   select.big{font-size:16px;height:48px}
@@ -31,7 +33,7 @@
   .kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:10px}
   .tile{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
   .tile .tt{font-size:11px;color:#374151;text-transform:uppercase;letter-spacing:.04em}
-  .tile .vv{font-size:22px;font-weight:800;color:#1f2937;margin-top:4px}
+  .tile .vv{font-size:26px;font-weight:800;color:#1f2937;margin-top:4px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
   .imgbox{border-radius:12px;overflow:hidden;aspect-ratio:16/9;background:#000;display:flex;align-items:center;justify-content:center}
   .imgbox img{width:100%;height:100%;object-fit:cover}
@@ -40,6 +42,10 @@
   th:first-child,td:first-child{text-align:left} .notes{white-space:pre-wrap;background:#fff;border:1px dashed var(--line);border-radius:12px;padding:10px;min-height:64px}
   .why{padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:#f8fafc}
   .footer{margin-top:12px;font-size:12px;color:var(--blue)}
+  .skyrun-footer{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:#6b7280;font-weight:600}
+  .skyrun-footer img{height:18px;width:auto;object-fit:contain}
+  .section-title{font-size:14px;font-weight:800;color:#0077C8;margin:0 0 10px 0;text-transform:uppercase;letter-spacing:.04em}
+  .input-group{padding:16px;border:2px dashed #0077C8;border-radius:12px;background:#f8fbff}
   .table-mini{font-size:12px; margin-top:8px}
   .table-mini td, .table-mini th{padding:4px 6px}
   canvas { pointer-events:none; touch-action: pan-y; }
@@ -213,6 +219,7 @@ let __userPhotoChosen = false;
         <div style="font-size:22px;font-weight:800;color:#1f2937">Projected Short-Term Rental Performance</div>
         <button class="btn" id="printBtn">Download PDF</button>
       </div>
+      <div class="subtle">Enter property details below. Estimates update automatically as values change.</div>
       <div class="kvgrid">
         <div class="kv"><b>Owner</b><span id="cvOwner">—</span></div>
         <div class="kv"><b>Property Address</b><span id="cvAddr">—</span></div>
@@ -240,7 +247,11 @@ let __userPhotoChosen = false;
     </div>
 
     <div class="controls">
-      <div class="inputs">
+      <div class="section-title">👇 Start Here: Enter Property Information</div>
+      <div style="background:#0077C8;color:#fff;padding:12px 14px;border-radius:10px;margin-bottom:12px;font-weight:600">
+        Complete the fields below to generate your personalized income estimate. Results update automatically as you type.
+      </div>
+      <div class="inputs input-group">
         <div>
           <label>Market / Location</label>
           <select id="market" class="big">
@@ -335,7 +346,7 @@ let __userPhotoChosen = false;
 
       <div class="card" id="sensCard">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px">
-          <div style="font-weight:800;color:#1f2937">Sensitivity Analysis — Based on Your Inputs</div>
+          <div style="font-weight:800;color:#1f2937">What Happens if the Market Changes?</div>
           <span class="badge">Gross only</span>
         </div>
         <div style="overflow:auto;margin-top:8px">
@@ -350,6 +361,7 @@ let __userPhotoChosen = false;
       </div>
 
       <div class="card">
+        <div class="section-title">Monthly Revenue Forecast</div>
         <div class="row" style="display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap">
           <div class="row" style="display:flex;gap:8px;flex-wrap:wrap">
             <span class="badge" id="seasonBadge">Seasonality: Brian Head • Studio</span>
@@ -377,6 +389,11 @@ let __userPhotoChosen = false;
       <h3 style="margin:12px 0 6px 0;color:#1f2937">Key Notes</h3>
       <div id="notesView" class="notes">No notes yet.</div>
       <div class="footer">© SkyRun Brian Head — From SoCal to Brian Head. Updated: <span id="updatedStamp"></span></div>
+      <div class="skyrun-footer">
+        <span>Built in California, Powered by</span>
+        <img src="https://nudgeadvisors.com/favicon.ico" alt="Nudge" />
+        <span>Nudge Advisors</span>
+      </div>
     </div>
   </div>
 
