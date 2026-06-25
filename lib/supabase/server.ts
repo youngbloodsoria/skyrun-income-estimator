@@ -3,8 +3,8 @@ import { cookies } from "next/headers";
 
 export async function createClient() {
   const cookieStore = await cookies();
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = normalizeUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const key = normalizeKey(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
   if (!url || !key) return null;
 
@@ -20,4 +20,12 @@ export async function createClient() {
       }
     }
   });
+}
+
+function normalizeUrl(value: string | undefined) {
+  return value?.trim().replace(/^['"]|['"]$/g, "");
+}
+
+function normalizeKey(value: string | undefined) {
+  return value?.replace(/\s+/g, "").replace(/^['"]|['"]$/g, "");
 }
