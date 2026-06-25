@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Trash2, Users } from "lucide-react";
+import { ArrowRight, Eye, Trash2, Users } from "lucide-react";
 import { currency } from "@/lib/estimator";
 import { createClient } from "@/lib/supabase/client";
 import type { SavedEstimate, UserRole } from "@/lib/types";
@@ -73,7 +73,7 @@ export function EstimateDashboard({
                 <th>Created</th>
                 <th>Projection</th>
                 <th>Contact</th>
-                {canDelete && <th aria-label="Actions" />}
+                <th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -84,8 +84,16 @@ export function EstimateDashboard({
                   <td>{new Date(estimate.created_at).toLocaleDateString()}</td>
                   <td><strong>{currency.format(estimate.annual_gross)}</strong></td>
                   <td><a href={`tel:${estimate.phone}`} style={{ color: "#0877bd", fontWeight: 800 }}>{estimate.phone}</a></td>
-                  {canDelete && (
-                    <td className="table-action">
+                  <td className="table-actions">
+                    <Link
+                      className="icon-view-button"
+                      href={`/dashboard/estimates/${estimate.id}`}
+                      aria-label={`View estimate for ${estimate.owner_name}`}
+                      title="View saved estimate"
+                    >
+                      <Eye size={17} />
+                    </Link>
+                    {canDelete && (
                       <button
                         className="icon-danger-button"
                         type="button"
@@ -96,13 +104,13 @@ export function EstimateDashboard({
                       >
                         <Trash2 size={17} />
                       </button>
-                    </td>
-                  )}
+                    )}
+                  </td>
                 </tr>
               ))}
               {estimates.length === 0 && (
                 <tr>
-                  <td colSpan={canDelete ? 6 : 5} className="empty-state">
+                  <td colSpan={6} className="empty-state">
                     No estimates yet. <Link href="/estimate" style={{ color: "#0877bd" }}>Create the first one <ArrowRight size={14} /></Link>
                   </td>
                 </tr>

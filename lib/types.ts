@@ -28,4 +28,6 @@ export type SavedEstimate = {
   average_nightly_rate: number;
   nights_booked: number;
   created_by: string;
+  input_snapshot: Record<string, unknown>;
+  result_snapshot: Record<string, unknown>;
 };
