@@ -142,6 +142,7 @@ a { color: inherit; text-decoration: none; }
 .strength-chip.selected { color: var(--blue-dark); background: var(--sky); border-color: #9bcce6; }
 
 .results-stack { display: grid; gap: 22px; }
+.print-report-header, .print-report-footer { display: none; }
 .results-hero {
   position: relative; overflow: hidden; color: white; border-radius: 24px; padding: clamp(25px, 4vw, 40px);
   background: linear-gradient(135deg, #075c91, #0989d5);
@@ -295,9 +296,85 @@ a { color: inherit; text-decoration: none; }
 }
 
 @media print {
-  .site-header, .site-footer, .estimator-form-panel, .no-print { display: none !important; }
-  body { background: white; }
-  .app-main { padding: 0; }
+  @page { size: Letter; margin: .42in; }
+  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  html, body { background: white; font-size: 10px; }
+  .site-header, .site-footer, .estimator-form-panel, .no-print, .page-heading { display: none !important; }
+  .site-shell, .app-main { display: block; min-height: auto; width: 100%; max-width: none; margin: 0; padding: 0; }
   .estimator-layout { display: block; }
-  .panel, .results-hero { box-shadow: none; break-inside: avoid; }
+  .results-stack { display: block; }
+  .results-stack > * { margin-bottom: 10px; }
+
+  .print-report-header {
+    display: flex; align-items: center; gap: 13px; margin-bottom: 12px; padding-bottom: 9px;
+    border-bottom: 2px solid var(--blue);
+  }
+  .print-report-header img { width: 54px; height: 54px; object-fit: contain; }
+  .print-report-header span, .print-report-header strong, .print-report-header small { display: block; }
+  .print-report-header span { color: var(--blue); font-size: 9px; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+  .print-report-header strong { margin: 2px 0; font-size: 19px; letter-spacing: -.03em; }
+  .print-report-header small { color: var(--muted); font-size: 9px; }
+  .print-report-footer {
+    display: flex; justify-content: space-between; gap: 18px; margin-top: 8px; padding-top: 7px;
+    border-top: 1px solid var(--line); color: var(--muted); font-size: 8px;
+  }
+
+  .panel, .results-hero, .metric, .insight-card, .owner-use-card, .skyrun-value-card {
+    box-shadow: none !important; break-inside: avoid; page-break-inside: avoid;
+  }
+  .panel { border-radius: 10px; }
+  .panel-pad { padding: 14px; }
+  .panel-title { margin-bottom: 10px; }
+  .panel-title h3, .context-title { font-size: 15px !important; }
+  .eyebrow { font-size: 7px; }
+  .eyebrow::before { width: 18px; height: 2px; }
+
+  .results-hero { padding: 18px 22px; border-radius: 12px; }
+  .results-hero::after { display: none; }
+  .results-label { font-size: 8px; }
+  .results-amount { margin: 3px 0 8px; font-size: 45px; }
+  .results-meta { gap: 5px 14px; font-size: 9px; }
+
+  .metric-grid { grid-template-columns: repeat(4, 1fr); gap: 7px; margin-bottom: 10px !important; }
+  .metric { padding: 10px; border-radius: 9px; }
+  .metric span { font-size: 7px; }
+  .metric strong { margin-top: 3px; font-size: 16px; }
+
+  .insight-grid { grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 10px !important; }
+  .insight-card { min-height: auto; padding: 11px; border-radius: 9px; }
+  .insight-card > span { width: 18px; height: 18px; font-size: 8px; }
+  .insight-card p { margin-top: 8px; font-size: 8.5px; line-height: 1.4; }
+
+  .demand-calendar { grid-template-columns: repeat(12, 1fr); gap: 3px; }
+  .demand-month { padding: 7px 2px; border-radius: 6px; }
+  .demand-month strong { font-size: 8px; }
+  .demand-month span, .demand-month small { font-size: 6px; }
+  .demand-legend { margin-top: 5px; font-size: 7px; }
+
+  .chart-wrap { height: 190px; }
+  .owner-use-card { grid-template-columns: auto 1fr auto; gap: 10px; padding: 12px; border-radius: 10px; }
+  .owner-use-icon { width: 32px; height: 32px; border-radius: 8px; }
+  .owner-use-card h3 { margin: 4px 0 2px; font-size: 13px; }
+  .owner-use-card p { font-size: 8px; }
+  .owner-use-number strong { font-size: 16px; }
+
+  .context-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .context-copy { margin-bottom: 8px; font-size: 8.5px; line-height: 1.4; }
+  .market-fact { gap: 6px; padding: 7px 0; }
+  .market-fact span, .market-fact strong { font-size: 7.5px; }
+  .booking-bars { gap: 6px; margin-top: 10px; }
+  .booking-row { grid-template-columns: 56px 1fr 25px; gap: 5px; font-size: 7px; }
+
+  .strength-summary { gap: 5px; }
+  .strength-summary span { padding: 5px 7px; font-size: 7.5px; }
+  .skyrun-value-card { grid-template-columns: .9fr 1.1fr; gap: 20px; padding: 16px; border-radius: 10px; }
+  .skyrun-value-card h3 { margin: 6px 0; font-size: 18px; }
+  .skyrun-value-card p, .value-list span { font-size: 8px; }
+  .value-list { gap: 7px; }
+
+  .scenario { padding: 8px 0; font-size: 9px; }
+  .scenario small { font-size: 7.5px; }
+  .methodology { margin-top: 8px; padding-top: 7px; }
+  .methodology summary { font-size: 8px; }
+  .methodology div { padding-top: 4px; font-size: 7.5px; }
 }
