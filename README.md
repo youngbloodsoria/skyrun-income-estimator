@@ -11,6 +11,10 @@ A standalone, secure property-income estimator for prospective owners and SkyRun
 - Saved estimates protected with Supabase Row Level Security
 - Employee lead dashboard
 - New-lead email notifications to `brianhead@skyrun.com`
+- Market-specific demand profiles for Brian Head, Duck Creek, and Panguitch
+- Seasonal demand calendar and booking-window behavior
+- Personalized performance insights and owner-use revenue impact
+- Property-strength positioning without unsupported amenity premiums
 - Print/PDF and CSV export
 - Responsive SkyRun and Nudge-branded interface
 - Configurable iframe allowlist for future website embedding

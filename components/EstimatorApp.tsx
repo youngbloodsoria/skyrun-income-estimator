@@ -3,8 +3,30 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { ArrowRight, BarChart3, Download, Printer, Save, Sparkles } from "lucide-react";
-import { calculateEstimate, currency, defaultEstimateInput, EstimateInput, MARKETS } from "@/lib/estimator";
+import {
+  ArrowRight,
+  BarChart3,
+  CalendarDays,
+  Check,
+  Clock3,
+  Compass,
+  Download,
+  Home,
+  Info,
+  Printer,
+  Save,
+  ShieldCheck,
+  Sparkles,
+  TrendingUp
+} from "lucide-react";
+import {
+  calculateEstimate,
+  currency,
+  defaultEstimateInput,
+  EstimateInput,
+  MARKETS,
+  PROPERTY_STRENGTHS
+} from "@/lib/estimator";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, SavedEstimate } from "@/lib/types";
 
@@ -14,6 +36,15 @@ type Props = {
   staffMode?: boolean;
   demoMode?: boolean;
 };
+
+const SKYRUN_VALUE = [
+  "Dynamic pricing shaped around local demand",
+  "Professional listing presentation and distribution",
+  "Local guest support and property care",
+  "Consistent cleaning and inspection standards",
+  "Damage protection and liability safeguards",
+  "A full-time Brian Head operations team"
+];
 
 export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoMode = false }: Props) {
   const router = useRouter();
@@ -31,6 +62,15 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
   function update<K extends keyof EstimateInput>(key: K, value: EstimateInput[K]) {
     setInput((current) => ({ ...current, [key]: value }));
     setSaveStatus("");
+  }
+
+  function toggleStrength(strength: string) {
+    update(
+      "strengths",
+      input.strengths.includes(strength)
+        ? input.strengths.filter((item) => item !== strength)
+        : [...input.strengths, strength]
+    );
   }
 
   async function generateEstimate(event: React.FormEvent) {
@@ -94,11 +134,13 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
 
   function downloadCsv() {
     const rows = [
-      ["Month", "Available nights", "Seasonality", "Occupied nights", "Nightly rate", "Revenue"],
+      ["Month", "Available nights", "Seasonality", "Demand band", "Owner nights", "Guest nights", "Nightly rate", "Revenue"],
       ...result.monthly.map((month) => [
         month.month,
         month.nights,
         month.multiplier.toFixed(2),
+        month.demandBand,
+        month.ownerNights,
         month.occupiedNights,
         month.rate.toFixed(2),
         month.revenue.toFixed(2)
@@ -123,6 +165,7 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
           <Sparkles color="#f8b91c" />
         </div>
         <form onSubmit={generateEstimate}>
+          <div className="form-section-label">Owner and property</div>
           <div className="form-grid">
             <div className="field span-2">
               <label>Owner name</label>
@@ -130,14 +173,7 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
             </div>
             <div className="field span-2">
               <label>Owner email</label>
-              <input
-                className="input"
-                type="email"
-                value={input.ownerEmail}
-                onChange={(event) => update("ownerEmail", event.target.value)}
-                readOnly={!staffMode}
-                required
-              />
+              <input className="input" type="email" value={input.ownerEmail} onChange={(event) => update("ownerEmail", event.target.value)} readOnly={!staffMode} required />
             </div>
             <div className="field span-2">
               <label>Phone number</label>
@@ -147,6 +183,10 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
               <label>Property address</label>
               <input className="input" value={input.propertyAddress} onChange={(event) => update("propertyAddress", event.target.value)} placeholder="329 S Hwy 143, Brian Head, UT" required />
             </div>
+          </div>
+
+          <div className="form-section-label">Rental assumptions</div>
+          <div className="form-grid">
             <div className="field">
               <label>Market</label>
               <select className="select" value={input.market} onChange={(event) => update("market", event.target.value as EstimateInput["market"])}>
@@ -158,6 +198,10 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
               <select className="select" value={input.bedrooms} onChange={(event) => update("bedrooms", event.target.value as EstimateInput["bedrooms"])}>
                 {["Studio", "1BR", "2BR", "3BR", "4+BR"].map((bedroom) => <option key={bedroom}>{bedroom}</option>)}
               </select>
+            </div>
+            <div className="market-form-note span-2">
+              <Compass size={17} />
+              <span>{MARKETS[input.market].demandPattern}</span>
             </div>
             <div className="field span-2">
               <label>Property style</label>
@@ -181,11 +225,44 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
               <input type="checkbox" checked={input.petsAllowed} onChange={(event) => update("petsAllowed", event.target.checked)} />
               Pet-friendly
             </label>
-            <div className="field span-2">
-              <label>Property highlights</label>
-              <textarea className="textarea" value={input.notes} onChange={(event) => update("notes", event.target.value)} placeholder="Ski-in/ski-out, private hot tub, garage, recent renovation…" />
+          </div>
+
+          <div className="form-section-label">Your personal use</div>
+          <div className="form-grid">
+            <div className="field">
+              <label>Owner nights per year</label>
+              <input className="input" type="number" min={0} max={120} value={input.ownerUseNights} onChange={(event) => update("ownerUseNights", Number(event.target.value))} />
+            </div>
+            <div className="field">
+              <label>When would you visit?</label>
+              <select className="select" value={input.ownerUseTiming} onChange={(event) => update("ownerUseTiming", event.target.value as EstimateInput["ownerUseTiming"])}>
+                <option value="peak">Mostly peak season</option>
+                <option value="mixed">Spread through the year</option>
+                <option value="value">Mostly value season</option>
+              </select>
             </div>
           </div>
+
+          <div className="form-section-label">Property strengths</div>
+          <p className="form-help strength-help">These help the SkyRun team understand the home. They do not automatically inflate the projection.</p>
+          <div className="strength-picker">
+            {PROPERTY_STRENGTHS.map((strength) => (
+              <button
+                type="button"
+                key={strength}
+                className={`strength-chip ${input.strengths.includes(strength) ? "selected" : ""}`}
+                onClick={() => toggleStrength(strength)}
+              >
+                {input.strengths.includes(strength) && <Check size={13} />}
+                {strength}
+              </button>
+            ))}
+          </div>
+          <div className="field">
+            <label>Other property highlights</label>
+            <textarea className="textarea" value={input.notes} onChange={(event) => update("notes", event.target.value)} placeholder="Recent renovation, game room, private deck, trailer parking…" />
+          </div>
+
           <button className="button button-primary button-wide" disabled={saving}>
             {saving ? "Saving your estimate…" : resultVisible ? "Update and save estimate" : "Generate my estimate"}
             {saving ? <Save size={17} /> : <ArrowRight size={17} />}
@@ -200,6 +277,11 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
             <BarChart3 size={42} color="#0877bd" />
             <strong>Your projection will appear here</strong>
             <p>Complete the property profile and generate your private estimate.</p>
+            <div className="empty-preview">
+              <span><TrendingUp size={17} /> Revenue range</span>
+              <span><CalendarDays size={17} /> Seasonal demand</span>
+              <span><Clock3 size={17} /> Booking behavior</span>
+            </div>
             {savedEstimates.length > 0 && <p className="form-help">You have {savedEstimates.length} saved estimate{savedEstimates.length === 1 ? "" : "s"}.</p>}
           </div>
         ) : (
@@ -216,9 +298,43 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
 
             <div className="metric-grid">
               <div className="metric"><span>Net to owner</span><strong>{currency.format(result.netToOwner)}</strong></div>
-              <div className="metric"><span>Nights booked</span><strong>{result.nightsBooked}</strong></div>
+              <div className="metric"><span>Guest nights</span><strong>{result.nightsBooked}</strong></div>
               <div className="metric"><span>Average nightly</span><strong>{currency.format(result.averageNightlyRate)}</strong></div>
-              <div className="metric"><span>Occupancy</span><strong>{Math.round(result.occupancyPct)}%</strong></div>
+              <div className="metric"><span>Guest occupancy</span><strong>{Math.round(result.occupancyPct)}%</strong></div>
+            </div>
+
+            <div className="insight-grid">
+              {result.insights.map((insight, index) => (
+                <div className="insight-card" key={insight}>
+                  <span>{index + 1}</span>
+                  <p>{insight}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="panel panel-pad">
+              <div className="panel-title">
+                <div>
+                  <div className="eyebrow">Demand calendar</div>
+                  <h3 style={{ marginTop: 9 }}>When this market earns</h3>
+                </div>
+                <CalendarDays color="#0877bd" />
+              </div>
+              <div className="demand-calendar">
+                {result.monthly.map((month) => (
+                  <div className={`demand-month band-${month.demandBand.toLowerCase()}`} key={month.month}>
+                    <strong>{month.month}</strong>
+                    <span>{month.demandBand}</span>
+                    <small>{month.multiplier.toFixed(2)}×</small>
+                  </div>
+                ))}
+              </div>
+              <div className="demand-legend">
+                <span><i className="legend-peak" /> Peak</span>
+                <span><i className="legend-strong" /> Strong</span>
+                <span><i className="legend-steady" /> Steady</span>
+                <span><i className="legend-value" /> Value</span>
+              </div>
             </div>
 
             <div className="panel panel-pad">
@@ -248,6 +364,86 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
               </div>
             </div>
 
+            {input.ownerUseNights > 0 && (
+              <div className="owner-use-card">
+                <div className="owner-use-icon"><Home size={24} /></div>
+                <div>
+                  <div className="eyebrow">Owner-use impact</div>
+                  <h3>{input.ownerUseNights} personal nights are included</h3>
+                  <p>
+                    This projection reduces potential gross by approximately <strong>{currency.format(result.ownerUseImpact)}</strong>.
+                    Value-season stays generally preserve more rental income than peak-season stays.
+                  </p>
+                </div>
+                <div className="owner-use-number">
+                  <span>Before owner use</span>
+                  <strong>{currency.format(result.annualGrossBeforeOwnerUse)}</strong>
+                </div>
+              </div>
+            )}
+
+            <div className="context-grid">
+              <div className="panel panel-pad">
+                <div className="eyebrow">Local market</div>
+                <h3 className="context-title">{result.market.label}</h3>
+                <p className="context-copy">{result.market.summary}</p>
+                <div className="market-fact">
+                  <TrendingUp size={18} />
+                  <span><strong>Demand pattern</strong>{result.market.demandPattern}</span>
+                </div>
+                <div className="market-fact">
+                  <Compass size={18} />
+                  <span><strong>Guest appeal</strong>{result.market.guestAppeal}</span>
+                </div>
+              </div>
+
+              <div className="panel panel-pad">
+                <div className="eyebrow">Booking behavior</div>
+                <h3 className="context-title">When guests plan</h3>
+                <p className="context-copy">
+                  Larger and higher-end homes generally shift more demand into longer planning windows.
+                </p>
+                <div className="booking-bars">
+                  {result.bookingWindows.map((window) => (
+                    <div className="booking-row" key={window.label}>
+                      <span>{window.label}</span>
+                      <div><i style={{ width: `${window.share * 100}%` }} /></div>
+                      <strong>{Math.round(window.share * 100)}%</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {input.strengths.length > 0 && (
+              <div className="panel panel-pad">
+                <div className="panel-title">
+                  <div>
+                    <div className="eyebrow">Property positioning</div>
+                    <h3 style={{ marginTop: 9 }}>Strengths to feature</h3>
+                  </div>
+                  <Sparkles color="#f8b91c" />
+                </div>
+                <div className="strength-summary">
+                  {input.strengths.map((strength) => <span key={strength}><Check size={14} /> {strength}</span>)}
+                </div>
+                <p className="form-help" style={{ marginTop: 16 }}>
+                  These features help shape listing strategy and guest appeal. They are documented here without applying unsupported revenue premiums.
+                </p>
+              </div>
+            )}
+
+            <div className="skyrun-value-card">
+              <div>
+                <div className="eyebrow light">The SkyRun difference</div>
+                <h3>Local execution turns potential into performance.</h3>
+                <p>The estimate is the starting point. Pricing, presentation, responsiveness, and consistent property care determine how well a home competes.</p>
+              </div>
+              <div className="value-list">
+                {SKYRUN_VALUE.map((item) => <span key={item}><ShieldCheck size={17} /> {item}</span>)}
+              </div>
+            </div>
+
             <div className="panel panel-pad">
               <div className="panel-title">
                 <div>
@@ -259,14 +455,25 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
               <div className="scenario-list">
                 {result.scenarios.map((scenario) => (
                   <div className="scenario" key={scenario.label}>
-                    <div><strong>{scenario.label}</strong><br /><small>{Math.round(scenario.occupancy * 100)}% occupancy · {currency.format(scenario.averageRate)} avg. nightly</small></div>
+                    <div><strong>{scenario.label}</strong><br /><small>{Math.round(scenario.occupancy * 100)}% potential occupancy · {currency.format(scenario.averageRate)} avg. nightly</small></div>
                     <strong>{currency.format(scenario.gross)}</strong>
                   </div>
                 ))}
               </div>
-              <p className="form-help" style={{ marginTop: 18 }}>
-                Directional estimate only—not a guarantee of performance. Actual results vary with market conditions, property quality, owner use, pricing, and guest demand.
-              </p>
+              <details className="methodology">
+                <summary><Info size={16} /> How this estimate was built</summary>
+                <div>
+                  <p>
+                    The projection combines {result.market.label} seasonality, the selected base rate and occupancy,
+                    bedroom-driven booking behavior, property style, management fee, and planned owner use.
+                    {input.petsAllowed ? " The Brian Head pet-friendly booking adjustment is also included." : ""}
+                  </p>
+                  <p>
+                    It is directional—not a promise or guarantee. Actual results vary with property condition, guest demand,
+                    market supply, owner use, pricing strategy, weather, and the quality of ongoing operations.
+                  </p>
+                </div>
+              </details>
             </div>
           </>
         )}
