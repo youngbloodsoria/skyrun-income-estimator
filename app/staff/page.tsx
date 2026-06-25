@@ -104,7 +104,7 @@ export default function StaffLoginPage() {
             </form>
           ) : (
             <form onSubmit={verifyCode}>
-              <p>Enter the six-digit code sent to your SkyRun inbox.</p>
+              <p>Enter the verification code sent to your SkyRun inbox.</p>
               <div className="field">
                 <label htmlFor="staffCode">Verification code</label>
                 <input
@@ -112,7 +112,7 @@ export default function StaffLoginPage() {
                   className="input code-input"
                   inputMode="numeric"
                   autoComplete="one-time-code"
-                  maxLength={6}
+                  maxLength={8}
                   value={code}
                   onChange={(event) => setCode(event.target.value)}
                   placeholder="000000"
@@ -120,7 +120,7 @@ export default function StaffLoginPage() {
                 />
               </div>
               {status && <div className="form-status">{status}</div>}
-              <button className="button button-primary button-wide" disabled={busy || code.replace(/\D/g, "").length !== 6}>
+              <button className="button button-primary button-wide" disabled={busy || ![6, 8].includes(code.replace(/\D/g, "").length)}>
                 {busy ? "Verifying…" : "Open employee dashboard"} <ArrowRight size={17} />
               </button>
               <button type="button" className="button button-ghost button-wide" onClick={() => setStep("email")}>

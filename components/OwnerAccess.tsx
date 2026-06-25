@@ -74,7 +74,7 @@ export function OwnerAccess() {
       <form onSubmit={verifyCode}>
         <MailCheck size={34} color="#0877bd" />
         <h2 style={{ marginTop: 14 }}>Check your email</h2>
-        <p>Enter the six-digit code we sent you. This keeps your property estimate private.</p>
+        <p>Enter the verification code we sent you. This keeps your property estimate private.</p>
         <div className="field">
           <label htmlFor="code">Verification code</label>
           <input
@@ -82,7 +82,7 @@ export function OwnerAccess() {
             className="input code-input"
             inputMode="numeric"
             autoComplete="one-time-code"
-            maxLength={6}
+            maxLength={8}
             value={code}
             onChange={(event) => setCode(event.target.value)}
             placeholder="000000"
@@ -90,7 +90,7 @@ export function OwnerAccess() {
           />
         </div>
         {status && <div className={`form-status ${status.type}`}>{status.text}</div>}
-        <button className="button button-primary button-wide" disabled={busy || code.replace(/\D/g, "").length !== 6}>
+        <button className="button button-primary button-wide" disabled={busy || ![6, 8].includes(code.replace(/\D/g, "").length)}>
           {busy ? "Verifying…" : "Verify and continue"} <ArrowRight size={17} />
         </button>
         <button type="button" className="button button-ghost button-wide" onClick={() => setStep("details")}>
