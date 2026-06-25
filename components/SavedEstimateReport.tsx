@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, CalendarDays, Check, Mail, Phone, Printer } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Mail, Pencil, Phone, Printer } from "lucide-react";
 import Link from "next/link";
 import { currency, MONTHS } from "@/lib/estimator";
 import type { SavedEstimate } from "@/lib/types";
@@ -14,7 +14,7 @@ type MonthlyRow = {
   revenue: number;
 };
 
-export function SavedEstimateReport({ estimate }: { estimate: SavedEstimate }) {
+export function SavedEstimateReport({ estimate, staffMode }: { estimate: SavedEstimate; staffMode: boolean }) {
   const input = estimate.input_snapshot || {};
   const result = estimate.result_snapshot || {};
   const monthly = Array.isArray(result.monthly) ? result.monthly as MonthlyRow[] : [];
@@ -33,8 +33,11 @@ export function SavedEstimateReport({ estimate }: { estimate: SavedEstimate }) {
   return (
     <div className="saved-report">
       <div className="saved-report-actions no-print">
-        <Link className="button button-secondary" href="/dashboard"><ArrowLeft size={16} /> Back to dashboard</Link>
-        <button className="button button-primary" onClick={() => window.print()}><Printer size={16} /> Print / PDF</button>
+        <Link className="button button-secondary" href={staffMode ? "/dashboard" : "/estimate"}><ArrowLeft size={16} /> {staffMode ? "Back to dashboard" : "Back to estimates"}</Link>
+        <div className="saved-report-action-group">
+          <Link className="button button-secondary" href={`/estimate?edit=${estimate.id}`}><Pencil size={16} /> Edit estimate</Link>
+          <button className="button button-primary" onClick={() => window.print()}><Printer size={16} /> Print / PDF</button>
+        </div>
       </div>
 
       <header className="saved-report-header">
@@ -55,7 +58,7 @@ export function SavedEstimateReport({ estimate }: { estimate: SavedEstimate }) {
       <section className="saved-contact-bar">
         <span><Mail size={15} /> {estimate.owner_email || "No owner email saved"}</span>
         <span><Phone size={15} /> {estimate.phone}</span>
-        <span><CalendarDays size={15} /> Original saved version</span>
+        <span><CalendarDays size={15} /> Current saved version</span>
       </section>
 
       <section className="saved-results-hero">
@@ -74,8 +77,8 @@ export function SavedEstimateReport({ estimate }: { estimate: SavedEstimate }) {
 
       <div className="saved-report-grid">
         <section className="panel panel-pad">
-          <div className="eyebrow">Original assumptions</div>
-          <h2 className="saved-section-title">What the owner entered</h2>
+          <div className="eyebrow">Saved assumptions</div>
+          <h2 className="saved-section-title">Current property inputs</h2>
           <dl className="saved-assumptions">
             <div><dt>Market</dt><dd>{marketLabel}</dd></div>
             <div><dt>Bedrooms</dt><dd>{estimate.bedrooms}</dd></div>
@@ -116,7 +119,7 @@ export function SavedEstimateReport({ estimate }: { estimate: SavedEstimate }) {
 
       <section className="panel panel-pad">
         <div className="eyebrow">Monthly forecast</div>
-        <h2 className="saved-section-title">Original revenue schedule</h2>
+        <h2 className="saved-section-title">Current revenue schedule</h2>
         {monthly.length > 0 ? (
           <div className="table-wrap">
             <table className="table saved-monthly-table">
@@ -142,7 +145,7 @@ export function SavedEstimateReport({ estimate }: { estimate: SavedEstimate }) {
 
       <footer className="saved-report-footer">
         <span>SkyRun Brian Head · 435.990.4004 · brianhead@skyrun.com</span>
-        <span>This is the original saved estimate created on {created.toLocaleDateString()}.</span>
+        <span>Saved estimate created on {created.toLocaleDateString()}{estimate.updated_at && estimate.updated_at !== estimate.created_at ? ` · last updated ${new Date(estimate.updated_at).toLocaleDateString()}` : ""}.</span>
       </footer>
     </div>
   );

@@ -226,7 +226,7 @@ export const defaultEstimateInput: EstimateInput = {
   market: "brianhead",
   bedrooms: "1BR",
   propertyStyle: "Condo / Standard",
-  baseRate: 175,
+  baseRate: 128,
   occupancyPct: 38,
   managementFeePct: 29.7,
   petsAllowed: false,

@@ -27,6 +27,7 @@ import {
   MARKETS,
   PROPERTY_STRENGTHS
 } from "@/lib/estimator";
+import { getPricingGuidance } from "@/lib/pricing-guidance";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, SavedEstimate } from "@/lib/types";
 
@@ -35,6 +36,7 @@ type Props = {
   savedEstimates: SavedEstimate[];
   staffMode?: boolean;
   demoMode?: boolean;
+  initialEstimate?: SavedEstimate | null;
 };
 
 const SKYRUN_VALUE = [
@@ -46,15 +48,17 @@ const SKYRUN_VALUE = [
   "A full-time Brian Head operations team"
 ];
 
-export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoMode = false }: Props) {
+export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoMode = false, initialEstimate = null }: Props) {
   const router = useRouter();
-  const [input, setInput] = useState<EstimateInput>({
-    ...defaultEstimateInput,
-    ownerName: staffMode ? "" : profile.full_name || "",
-    ownerEmail: staffMode ? "" : profile.email,
-    phone: staffMode ? "" : profile.phone || ""
-  });
-  const [resultVisible, setResultVisible] = useState(false);
+  const [input, setInput] = useState<EstimateInput>(() => initialEstimate
+    ? normalizeSavedInput(initialEstimate)
+    : {
+        ...defaultEstimateInput,
+        ownerName: staffMode ? "" : profile.full_name || "",
+        ownerEmail: staffMode ? "" : profile.email,
+        phone: staffMode ? "" : profile.phone || ""
+      });
+  const [resultVisible, setResultVisible] = useState(Boolean(initialEstimate));
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState("");
   const result = useMemo(() => calculateEstimate(input), [input]);
@@ -109,21 +113,26 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
         net_to_owner: result.netToOwner,
         average_nightly_rate: result.averageNightlyRate,
         nights_booked: result.nightsBooked,
-        created_by: userData.user.id,
+        created_by: initialEstimate?.created_by || userData.user.id,
         input_snapshot: input,
         result_snapshot: result
       };
 
-      const { data, error } = await supabase.from("estimator_estimates").insert(row).select("id").single();
+      const query = initialEstimate
+        ? supabase.from("estimator_estimates").update({ ...row, updated_at: new Date().toISOString() }).eq("id", initialEstimate.id)
+        : supabase.from("estimator_estimates").insert(row);
+      const { data, error } = await query.select("id").single();
       if (error) throw error;
 
-      await fetch("/api/notify-lead", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ estimateId: data.id })
-      });
+      if (!initialEstimate) {
+        await fetch("/api/notify-lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ estimateId: data.id })
+        });
+      }
 
-      setSaveStatus("Estimate saved securely.");
+      setSaveStatus(initialEstimate ? "Estimate updated securely." : "Estimate saved securely.");
       router.refresh();
     } catch (error) {
       setSaveStatus(error instanceof Error ? error.message : "The estimate was generated but could not be saved.");
@@ -195,7 +204,15 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
             </div>
             <div className="field">
               <label>Bedrooms</label>
-              <select className="select" value={input.bedrooms} onChange={(event) => update("bedrooms", event.target.value as EstimateInput["bedrooms"])}>
+              <select
+                className="select"
+                value={input.bedrooms}
+                onChange={(event) => {
+                  const bedrooms = event.target.value as EstimateInput["bedrooms"];
+                  setInput((current) => ({ ...current, bedrooms, baseRate: getPricingGuidance(bedrooms).recommended }));
+                  setSaveStatus("");
+                }}
+              >
                 {["Studio", "1BR", "2BR", "3BR", "4+BR"].map((bedroom) => <option key={bedroom}>{bedroom}</option>)}
               </select>
             </div>
@@ -212,6 +229,10 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
             <div className="field">
               <label>Base nightly rate</label>
               <input className="input" type="number" min={30} value={input.baseRate} onChange={(event) => update("baseRate", Number(event.target.value))} required />
+              <span className="field-guidance">
+                Portfolio guide: {currency.format(getPricingGuidance(input.bedrooms).low)}–{currency.format(getPricingGuidance(input.bedrooms).high)};
+                suggested starting point {currency.format(getPricingGuidance(input.bedrooms).recommended)}.
+              </span>
             </div>
             <div className="field">
               <label>Expected occupancy</label>
@@ -264,10 +285,10 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
           </div>
 
           <button className="button button-primary button-wide" disabled={saving}>
-            {saving ? "Saving your estimate…" : resultVisible ? "Update and save estimate" : "Generate my estimate"}
+            {saving ? "Saving your estimate…" : initialEstimate ? "Save changes to estimate" : resultVisible ? "Update and save estimate" : "Generate my estimate"}
             {saving ? <Save size={17} /> : <ArrowRight size={17} />}
           </button>
-          {saveStatus && <div className={`form-status ${saveStatus.includes("saved securely") ? "success" : ""}`}>{saveStatus}</div>}
+          {saveStatus && <div className={`form-status ${/saved securely|updated securely/.test(saveStatus) ? "success" : ""}`}>{saveStatus}</div>}
         </form>
       </section>
 
@@ -497,4 +518,49 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
       </section>
     </div>
   );
+}
+
+function normalizeSavedInput(estimate: SavedEstimate): EstimateInput {
+  const snapshot = estimate.input_snapshot || {};
+  const market = stringValue(snapshot.market, estimate.market);
+  const bedrooms = stringValue(snapshot.bedrooms, estimate.bedrooms);
+  const propertyStyle = stringValue(snapshot.propertyStyle, estimate.property_style);
+  const ownerUseTiming = stringValue(snapshot.ownerUseTiming, defaultEstimateInput.ownerUseTiming);
+
+  return {
+    ...defaultEstimateInput,
+    ownerName: stringValue(snapshot.ownerName, estimate.owner_name),
+    ownerEmail: stringValue(snapshot.ownerEmail, estimate.owner_email),
+    phone: stringValue(snapshot.phone, estimate.phone),
+    propertyAddress: stringValue(snapshot.propertyAddress, estimate.property_address),
+    market: market in MARKETS ? market as EstimateInput["market"] : defaultEstimateInput.market,
+    bedrooms: ["Studio", "1BR", "2BR", "3BR", "4+BR"].includes(bedrooms)
+      ? bedrooms as EstimateInput["bedrooms"]
+      : defaultEstimateInput.bedrooms,
+    propertyStyle: ["Condo / Standard", "Cabin / Chalet", "Luxury"].includes(propertyStyle)
+      ? propertyStyle as EstimateInput["propertyStyle"]
+      : defaultEstimateInput.propertyStyle,
+    baseRate: numberValue(snapshot.baseRate, estimate.base_rate),
+    occupancyPct: numberValue(snapshot.occupancyPct, estimate.occupancy_pct),
+    managementFeePct: numberValue(snapshot.managementFeePct, estimate.management_fee_pct),
+    petsAllowed: booleanValue(snapshot.petsAllowed, estimate.pets_allowed),
+    ownerUseNights: numberValue(snapshot.ownerUseNights, 0),
+    ownerUseTiming: ["peak", "mixed", "value"].includes(ownerUseTiming)
+      ? ownerUseTiming as EstimateInput["ownerUseTiming"]
+      : defaultEstimateInput.ownerUseTiming,
+    strengths: Array.isArray(snapshot.strengths) ? snapshot.strengths.filter((item): item is string => typeof item === "string") : [],
+    notes: stringValue(snapshot.notes, estimate.notes)
+  };
+}
+
+function stringValue(value: unknown, fallback: string) {
+  return typeof value === "string" && value ? value : fallback;
+}
+
+function numberValue(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isFinite(value) ? value : Number(fallback || 0);
+}
+
+function booleanValue(value: unknown, fallback: boolean) {
+  return typeof value === "boolean" ? value : fallback;
 }

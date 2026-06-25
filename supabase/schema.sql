@@ -195,7 +195,22 @@ create policy "Owners read their estimates and staff read all"
   to authenticated
   using (
     created_by = auth.uid()
-    or owner_email = lower(coalesce(auth.jwt() ->> 'email', ''))
+    or lower(owner_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    or public.estimator_is_staff()
+  );
+
+drop policy if exists "Owners and staff update accessible estimates" on public.estimator_estimates;
+create policy "Owners and staff update accessible estimates"
+  on public.estimator_estimates for update
+  to authenticated
+  using (
+    created_by = auth.uid()
+    or lower(owner_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
+    or public.estimator_is_staff()
+  )
+  with check (
+    created_by = auth.uid()
+    or lower(owner_email) = lower(coalesce(auth.jwt() ->> 'email', ''))
     or public.estimator_is_staff()
   );
 
@@ -215,5 +230,5 @@ on conflict (email) do update set role = excluded.role, active = true, updated_a
 
 grant usage on schema public to authenticated;
 grant select, update on public.estimator_profiles to authenticated;
-grant select, insert, delete on public.estimator_estimates to authenticated;
+grant select, insert, update, delete on public.estimator_estimates to authenticated;
 grant select, insert, update, delete on public.estimator_employee_access to authenticated;

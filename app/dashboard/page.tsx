@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Plus, Settings } from "lucide-react";
 import { Footer, Header } from "@/components/SiteChrome";
 import { EstimateDashboard } from "@/components/EstimateDashboard";
+import { PricingGuidance } from "@/components/PricingGuidance";
 import { createClient } from "@/lib/supabase/server";
 import type { Profile, SavedEstimate } from "@/lib/types";
 
@@ -36,6 +37,7 @@ export default async function DashboardPage() {
         </div>
 
         <EstimateDashboard initialEstimates={estimates} role={profile.role} />
+        <PricingGuidance />
       </main>
       <Footer />
     </div>

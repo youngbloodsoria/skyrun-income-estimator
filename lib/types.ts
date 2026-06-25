@@ -11,6 +11,7 @@ export type Profile = {
 export type SavedEstimate = {
   id: string;
   created_at: string;
+  updated_at: string;
   owner_name: string;
   owner_email: string;
   phone: string;
