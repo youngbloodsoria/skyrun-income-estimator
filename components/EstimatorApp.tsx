@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
@@ -288,13 +287,16 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
         ) : (
           <>
             <div className="print-report-header">
-              <Image src="/skyrun-logo.png" alt="SkyRun Brian Head" width={74} height={74} />
+              {/* A direct image URL is used so print engines load the logo even while this header is hidden on screen. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/skyrun-logo.png" alt="SkyRun Brian Head" width="74" height="74" />
               <div>
                 <span>SkyRun Brian Head</span>
                 <strong>Vacation Rental Income Projection</strong>
                 <small>
                   Prepared for {input.ownerName || "Property Owner"} · {new Date().toLocaleDateString()}
                 </small>
+                <small className="print-contact">435.990.4004 · brianhead@skyrun.com</small>
               </div>
             </div>
             <div className="results-hero">
@@ -487,7 +489,7 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
               </details>
             </div>
             <div className="print-report-footer">
-              <span>SkyRun Brian Head · brianhead@skyrun.com</span>
+              <span>SkyRun Brian Head · 435.990.4004 · brianhead@skyrun.com</span>
               <span>Directional estimate—not a guarantee of future performance.</span>
             </div>
           </>
