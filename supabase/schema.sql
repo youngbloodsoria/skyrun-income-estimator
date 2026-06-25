@@ -132,6 +132,13 @@ security definer
 set search_path = public
 as $$
 begin
+  if tg_op = 'DELETE' then
+    update public.estimator_profiles
+    set role = 'owner', updated_at = now()
+    where email = old.email;
+    return old;
+  end if;
+
   update public.estimator_profiles
   set
     role = case when new.active then new.role else 'owner' end,
@@ -143,7 +150,7 @@ $$;
 
 drop trigger if exists estimator_on_employee_access_changed on public.estimator_employee_access;
 create trigger estimator_on_employee_access_changed
-  after insert or update on public.estimator_employee_access
+  after insert or update or delete on public.estimator_employee_access
   for each row execute procedure public.estimator_sync_employee_profile();
 
 alter table public.estimator_profiles enable row level security;
@@ -209,4 +216,4 @@ on conflict (email) do update set role = excluded.role, active = true, updated_a
 grant usage on schema public to authenticated;
 grant select, update on public.estimator_profiles to authenticated;
 grant select, insert, delete on public.estimator_estimates to authenticated;
-grant select, insert, update on public.estimator_employee_access to authenticated;
+grant select, insert, update, delete on public.estimator_employee_access to authenticated;

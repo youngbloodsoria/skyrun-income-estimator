@@ -12,7 +12,13 @@ type AccessRow = {
   created_at: string;
 };
 
-export function AdminEmployees({ initialEmployees }: { initialEmployees: AccessRow[] }) {
+export function AdminEmployees({
+  initialEmployees,
+  currentUserEmail
+}: {
+  initialEmployees: AccessRow[];
+  currentUserEmail: string;
+}) {
   const [employees, setEmployees] = useState(initialEmployees);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<"employee" | "admin">("employee");
@@ -35,7 +41,7 @@ export function AdminEmployees({ initialEmployees }: { initialEmployees: AccessR
       if (error) throw error;
       setEmployees((current) => [data as AccessRow, ...current.filter((item) => item.email !== normalized)]);
       setEmail("");
-      setStatus(`${normalized} can now sign in with Google.`);
+      setStatus(`${normalized} can now sign in with an emailed verification code.`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not update employee access.");
     } finally {
@@ -43,16 +49,26 @@ export function AdminEmployees({ initialEmployees }: { initialEmployees: AccessR
     }
   }
 
-  async function deactivate(employee: AccessRow) {
-    if (!window.confirm(`Remove estimator access for ${employee.email}?`)) return;
+  async function removeAccess(employee: AccessRow) {
+    if (employee.email === currentUserEmail) {
+      setStatus("You cannot remove your own administrator access.");
+      return;
+    }
+    if (!window.confirm(`Remove estimator access for ${employee.email}?\n\nThey will no longer be able to open the employee dashboard.`)) return;
     setBusy(true);
     setStatus("");
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("estimator_employee_access").update({ active: false }).eq("id", employee.id);
+      const { data, error } = await supabase
+        .from("estimator_employee_access")
+        .delete()
+        .eq("id", employee.id)
+        .select("id")
+        .maybeSingle();
       if (error) throw error;
-      setEmployees((current) => current.map((item) => item.id === employee.id ? { ...item, active: false } : item));
-      setStatus(`${employee.email} has been deactivated.`);
+      if (!data) throw new Error("Supabase did not remove this access record. Run the latest admin migration and try again.");
+      setEmployees((current) => current.filter((item) => item.id !== employee.id));
+      setStatus(`${employee.email} no longer has employee access.`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Could not remove access.");
     } finally {
@@ -75,7 +91,13 @@ export function AdminEmployees({ initialEmployees }: { initialEmployees: AccessR
                   <td>{employee.active ? "Active" : "Inactive"}</td>
                   <td style={{ textAlign: "right" }}>
                     {employee.active && (
-                      <button className="button button-danger" onClick={() => deactivate(employee)} disabled={busy} aria-label={`Deactivate ${employee.email}`}>
+                      <button
+                        className="button button-danger"
+                        onClick={() => removeAccess(employee)}
+                        disabled={busy || employee.email === currentUserEmail}
+                        aria-label={`Remove access for ${employee.email}`}
+                        title={employee.email === currentUserEmail ? "You cannot remove your own access" : "Remove employee access"}
+                      >
                         <UserMinus size={15} />
                       </button>
                     )}
@@ -90,7 +112,7 @@ export function AdminEmployees({ initialEmployees }: { initialEmployees: AccessR
       <section className="panel panel-pad">
         <div className="eyebrow">Access management</div>
         <h2 style={{ margin: "12px 0 8px" }}>Add an employee</h2>
-        <p className="form-help">They will sign in with a six-digit code sent to their SkyRun inbox. No Google administrator or separate password is required.</p>
+        <p className="form-help">They will sign in with a verification code sent to their SkyRun inbox. No separate password is required.</p>
         <form onSubmit={addEmployee} style={{ marginTop: 22 }}>
           <div className="field">
             <label>SkyRun email</label>

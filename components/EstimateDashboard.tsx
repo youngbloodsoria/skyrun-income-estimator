@@ -30,8 +30,16 @@ export function EstimateDashboard({
     setStatus("");
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("estimator_estimates").delete().eq("id", estimate.id);
+      const { data, error } = await supabase
+        .from("estimator_estimates")
+        .delete()
+        .eq("id", estimate.id)
+        .select("id")
+        .maybeSingle();
       if (error) throw error;
+      if (!data) {
+        throw new Error("Supabase did not delete this estimate. Run the latest admin migration, then sign out and back in.");
+      }
       setEstimates((current) => current.filter((item) => item.id !== estimate.id));
       setStatus(`Deleted the estimate for ${estimate.owner_name}.`);
     } catch (error) {

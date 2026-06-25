@@ -26,7 +26,7 @@ export default async function AdminPage() {
             <p>Control who can use the estimator on behalf of property owners.</p>
           </div>
         </div>
-        <AdminEmployees initialEmployees={(employees || []) as never[]} />
+        <AdminEmployees initialEmployees={(employees || []) as never[]} currentUserEmail={profile.email} />
       </main>
       <Footer />
     </div>
