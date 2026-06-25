@@ -31,6 +31,7 @@ export default function StaffLoginPage() {
         email: normalized,
         options: {
           shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
           data: { role: "employee" }
         }
       });

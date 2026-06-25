@@ -25,6 +25,7 @@ export function OwnerAccess() {
         email: email.trim().toLowerCase(),
         options: {
           shouldCreateUser: true,
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/estimate`,
           data: { full_name: fullName.trim(), phone: phone.trim(), role: "owner" }
         }
       });
