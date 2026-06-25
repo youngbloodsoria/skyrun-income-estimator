@@ -39,7 +39,7 @@ export default function StaffLoginPage() {
       setStep("code");
       setStatus(`A secure sign-in code was sent to ${normalized}.`);
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Unable to send a sign-in code.");
+      setStatus(friendlyAuthError(error, "Unable to send a sign-in code."));
     } finally {
       setBusy(false);
     }
@@ -68,7 +68,7 @@ export default function StaffLoginPage() {
       router.push("/dashboard");
       router.refresh();
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "That code was not accepted.");
+      setStatus(friendlyAuthError(error, "That code was not accepted."));
     } finally {
       setBusy(false);
     }
@@ -139,4 +139,12 @@ export default function StaffLoginPage() {
       <Footer />
     </div>
   );
+}
+
+function friendlyAuthError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : "";
+  if (/rate.*exceed|too many requests/i.test(message)) {
+    return "Too many verification emails were requested. Please wait before requesting another code, then try again.";
+  }
+  return message || fallback;
 }

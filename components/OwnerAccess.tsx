@@ -34,7 +34,7 @@ export function OwnerAccess() {
       setStep("code");
       setStatus({ type: "success", text: `We sent a secure sign-in code to ${email}.` });
     } catch (error) {
-      setStatus({ type: "error", text: error instanceof Error ? error.message : "We could not send the code. Please try again." });
+      setStatus({ type: "error", text: friendlyAuthError(error, "We could not send the code. Please try again.") });
     } finally {
       setBusy(false);
     }
@@ -63,7 +63,7 @@ export function OwnerAccess() {
       router.push("/estimate");
       router.refresh();
     } catch (error) {
-      setStatus({ type: "error", text: error instanceof Error ? error.message : "That code was not accepted. Please try again." });
+      setStatus({ type: "error", text: friendlyAuthError(error, "That code was not accepted. Please try again.") });
     } finally {
       setBusy(false);
     }
@@ -126,4 +126,12 @@ export function OwnerAccess() {
       </p>
     </form>
   );
+}
+
+function friendlyAuthError(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : "";
+  if (/rate.*exceed|too many requests/i.test(message)) {
+    return "Too many verification emails were requested. Please wait before requesting another code, then try again.";
+  }
+  return message || fallback;
 }
