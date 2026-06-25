@@ -8,6 +8,7 @@ A standalone, secure property-income estimator for prospective owners and SkyRun
 - Required name, email, and phone before results
 - Passwordless Supabase email-code sign-in for approved employees
 - Admin-managed employee access
+- Admin-only deletion of saved estimates
 - Saved estimates protected with Supabase Row Level Security
 - Employee lead dashboard
 - New-lead email notifications to `brianhead@skyrun.com`
@@ -38,6 +39,9 @@ A standalone, secure property-income estimator for prospective owners and SkyRun
 2. Copy `.env.example` to `.env.local` and fill in the public Supabase URL and anon/publishable key.
 
 3. Run [`supabase/schema.sql`](supabase/schema.sql) in the Supabase SQL editor.
+
+   For an existing installation created before estimate deletion was added, also run
+   [`supabase/add-admin-estimate-delete.sql`](supabase/add-admin-estimate-delete.sql) once.
 
 4. In Supabase Authentication:
 

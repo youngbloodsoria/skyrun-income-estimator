@@ -192,15 +192,21 @@ create policy "Owners read their estimates and staff read all"
     or public.estimator_is_staff()
   );
 
+drop policy if exists "Admins delete estimates" on public.estimator_estimates;
+create policy "Admins delete estimates"
+  on public.estimator_estimates for delete
+  to authenticated
+  using (public.estimator_is_admin());
+
 insert into public.estimator_employee_access (email, role, active)
 values
-  ('matt.malpede@skyrun.com', 'admin', true),
+  ('matt.malpede@skyrun.com', 'employee', true),
   ('paula.soria@skyrun.com', 'admin', true),
   ('alex.soria@skyrun.com', 'admin', true),
-  ('jonelle.rush@skyrun.com', 'admin', true)
+  ('jonelle.rush@skyrun.com', 'employee', true)
 on conflict (email) do update set role = excluded.role, active = true, updated_at = now();
 
 grant usage on schema public to authenticated;
 grant select, update on public.estimator_profiles to authenticated;
-grant select, insert on public.estimator_estimates to authenticated;
+grant select, insert, delete on public.estimator_estimates to authenticated;
 grant select, insert, update on public.estimator_employee_access to authenticated;

@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight, Plus, Settings, Users } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
 import { Footer, Header } from "@/components/SiteChrome";
+import { EstimateDashboard } from "@/components/EstimateDashboard";
 import { createClient } from "@/lib/supabase/server";
-import { currency } from "@/lib/estimator";
 import type { Profile, SavedEstimate } from "@/lib/types";
 
 export default async function DashboardPage() {
@@ -18,7 +18,6 @@ export default async function DashboardPage() {
 
   const { data } = await supabase.from("estimator_estimates").select("*").order("created_at", { ascending: false }).limit(100);
   const estimates = (data || []) as SavedEstimate[];
-  const totalPipeline = estimates.reduce((sum, estimate) => sum + Number(estimate.annual_gross), 0);
 
   return (
     <div className="site-shell">
@@ -36,33 +35,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <div className="metric-grid" style={{ marginBottom: 22 }}>
-          <div className="metric"><span>Owner opportunities</span><strong>{estimates.length}</strong></div>
-          <div className="metric"><span>Projected gross pipeline</span><strong>{currency.format(totalPipeline)}</strong></div>
-          <div className="metric"><span>Average projection</span><strong>{currency.format(estimates.length ? totalPipeline / estimates.length : 0)}</strong></div>
-          <div className="metric"><span>Team access</span><strong><Users size={25} /></strong></div>
-        </div>
-
-        <section className="panel panel-pad">
-          <div className="panel-title"><h2>Recent estimates</h2><span className="badge">{estimates.length} saved</span></div>
-          <div className="table-wrap">
-            <table className="table">
-              <thead><tr><th>Owner</th><th>Property</th><th>Created</th><th>Projection</th><th>Contact</th></tr></thead>
-              <tbody>
-                {estimates.map((estimate) => (
-                  <tr key={estimate.id}>
-                    <td><strong>{estimate.owner_name}</strong><br /><span className="form-help">{estimate.owner_email || "Employee prepared"}</span></td>
-                    <td>{estimate.property_address}<br /><span className="form-help">{estimate.bedrooms} · {estimate.market}</span></td>
-                    <td>{new Date(estimate.created_at).toLocaleDateString()}</td>
-                    <td><strong>{currency.format(estimate.annual_gross)}</strong></td>
-                    <td><a href={`tel:${estimate.phone}`} style={{ color: "#0877bd", fontWeight: 800 }}>{estimate.phone}</a></td>
-                  </tr>
-                ))}
-                {estimates.length === 0 && <tr><td colSpan={5} className="empty-state">No estimates yet. <Link href="/estimate" style={{ color: "#0877bd" }}>Create the first one <ArrowRight size={14} /></Link></td></tr>}
-              </tbody>
-            </table>
-          </div>
-        </section>
+        <EstimateDashboard initialEstimates={estimates} role={profile.role} />
       </main>
       <Footer />
     </div>
