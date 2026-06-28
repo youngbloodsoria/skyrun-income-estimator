@@ -1,6 +1,15 @@
 import type { NextConfig } from "next";
 
-const frameAncestors = process.env.ALLOWED_FRAME_ANCESTORS || "'self'";
+const defaultFrameAncestors = [
+  "'self'",
+  "https://cedarmountainstays.com",
+  "https://www.cedarmountainstays.com",
+  "https://cedar-mountain-stays.vercel.app",
+  "http://localhost:3000",
+].join(" ");
+
+const frameAncestors =
+  process.env.ALLOWED_FRAME_ANCESTORS || defaultFrameAncestors;
 const scriptPolicy = process.env.NODE_ENV === "production"
   ? "script-src 'self' 'unsafe-inline'"
   : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
