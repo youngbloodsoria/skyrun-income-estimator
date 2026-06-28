@@ -6,10 +6,17 @@ const defaultFrameAncestors = [
   "https://www.cedarmountainstays.com",
   "https://cedar-mountain-stays.vercel.app",
   "http://localhost:3000",
-].join(" ");
+];
 
-const frameAncestors =
-  process.env.ALLOWED_FRAME_ANCESTORS || defaultFrameAncestors;
+const frameAncestors = Array.from(
+  new Set([
+    ...(process.env.ALLOWED_FRAME_ANCESTORS || "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((value) => (value === "self" ? "'self'" : value)),
+    ...defaultFrameAncestors,
+  ])
+).join(" ");
 const scriptPolicy = process.env.NODE_ENV === "production"
   ? "script-src 'self' 'unsafe-inline'"
   : "script-src 'self' 'unsafe-inline' 'unsafe-eval'";
