@@ -59,6 +59,8 @@ export default function StaffLoginPage() {
       if (error) throw error;
       if (!data.user) throw new Error("The code could not be verified.");
 
+      await supabase.rpc("estimator_claim_employee_access");
+
       const { data: profile } = await supabase.from("estimator_profiles").select("role").eq("id", data.user.id).single();
       if (!profile || !["employee", "admin"].includes(profile.role)) {
         await supabase.auth.signOut();
