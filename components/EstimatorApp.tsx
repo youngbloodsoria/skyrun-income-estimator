@@ -113,29 +113,46 @@ export function EstimatorApp({ profile, savedEstimates, staffMode = false, demoM
         net_to_owner: result.netToOwner,
         average_nightly_rate: result.averageNightlyRate,
         nights_booked: result.nightsBooked,
-        created_by: initialEstimate?.created_by || userData.user.id,
         input_snapshot: input,
         result_snapshot: result
       };
 
-      const query = initialEstimate
-        ? supabase.from("estimator_estimates").update({ ...row, updated_at: new Date().toISOString() }).eq("id", initialEstimate.id)
-        : supabase.from("estimator_estimates").insert(row);
-      const { data, error } = await query.select("id").single();
-      if (error) throw error;
+      let savedEstimateId = initialEstimate?.id;
+
+      if (initialEstimate) {
+        const { data, error, count } = await supabase
+          .from("estimator_estimates")
+          .update({ ...row, updated_at: new Date().toISOString() }, { count: "exact" })
+          .eq("id", initialEstimate.id)
+          .select("id")
+          .maybeSingle();
+        if (error) throw error;
+        if (!data || count === 0) {
+          throw new Error("No saved estimate was updated. Please run the Supabase estimate-editing migration, then try again.");
+        }
+        savedEstimateId = data.id;
+      } else {
+        const { data, error } = await supabase
+          .from("estimator_estimates")
+          .insert({ ...row, created_by: userData.user.id })
+          .select("id")
+          .single();
+        if (error) throw error;
+        savedEstimateId = data.id;
+      }
 
       if (!initialEstimate) {
         await fetch("/api/notify-lead", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ estimateId: data.id })
+          body: JSON.stringify({ estimateId: savedEstimateId })
         });
       }
 
       setSaveStatus(initialEstimate ? "Estimate updated securely." : "Estimate saved securely.");
       router.refresh();
     } catch (error) {
-      setSaveStatus(error instanceof Error ? error.message : "The estimate was generated but could not be saved.");
+      setSaveStatus(getErrorMessage(error, "The estimate was generated but could not be saved."));
     } finally {
       setSaving(false);
     }
@@ -563,4 +580,14 @@ function numberValue(value: unknown, fallback: number) {
 
 function booleanValue(value: unknown, fallback: boolean) {
   return typeof value === "boolean" ? value : fallback;
+}
+
+function getErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message;
+  if (typeof error === "object" && error !== null) {
+    const maybeError = error as { message?: unknown; details?: unknown; hint?: unknown };
+    const pieces = [maybeError.message, maybeError.details, maybeError.hint].filter((piece): piece is string => typeof piece === "string" && piece.length > 0);
+    if (pieces.length > 0) return pieces.join(" ");
+  }
+  return fallback;
 }
