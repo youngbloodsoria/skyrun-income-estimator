@@ -251,6 +251,21 @@ a { color: inherit; text-decoration: none; }
 .table td { font-size: 14px; }
 .table-action { width: 48px; text-align: right; }
 .table-actions { width: 92px; text-align: right; white-space: nowrap; }
+.table-actions > .form-help { margin-right: 12px; }
+.table-actions > * { vertical-align: middle; }
+.followup-button {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 30px; padding: 5px 10px; margin-right: 8px;
+  border: 1px solid var(--line); border-radius: 7px;
+  background: #f8fafb; color: #52636e;
+  font: inherit; font-size: 12px; font-weight: 600; line-height: 18px;
+  cursor: pointer; transition: background .15s, border-color .15s;
+}
+.followup-button:hover { background: var(--sky); border-color: #bfdbea; color: var(--blue-dark); }
+.followup-button[aria-pressed="true"] { background: #edf8e9; border-color: #cfe5c5; color: #437a30; }
+.followup-button:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; }
+.followup-button:disabled { opacity: .55; cursor: wait; }
+@media (pointer: coarse) { .followup-button { min-height: 36px; } }
 .icon-view-button {
   display: inline-grid; place-items: center; width: 36px; height: 36px; margin-right: 6px;
   border: 1px solid #bfdbea; border-radius: 10px; color: var(--blue-dark); background: var(--sky);

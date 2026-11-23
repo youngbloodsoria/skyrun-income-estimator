@@ -113,7 +113,7 @@ export function EstimateDashboard({
                   <td><a href={`tel:${estimate.phone}`} style={{ color: "#0877bd", fontWeight: 800 }}>{estimate.phone}</a></td>
                   <td className="table-actions">
                     <span className="form-help">{estimate.created_by_staff === true ? "Employee prepared" : estimate.created_by_staff === false ? "Owner submitted" : "Source unknown"}</span>
-                    <button type="button" className="button button-secondary" aria-pressed={Boolean(estimate.estimator_followups)} disabled={handlingId === estimate.id} onClick={() => void toggleHandled(estimate)}>
+                    <button type="button" className="followup-button" aria-pressed={Boolean(estimate.estimator_followups)} disabled={handlingId === estimate.id} onClick={() => void toggleHandled(estimate)}>
                       {handlingId === estimate.id ? "Saving…" : estimate.estimator_followups ? "Handled · Reopen" : "Mark handled"}
                     </button>
                     <Link
