@@ -17,7 +17,7 @@ export default async function DashboardPage() {
   const profile = profileData as Profile;
   if (!profile || !["employee", "admin"].includes(profile.role)) redirect("/staff?unauthorized=1");
 
-  const { data } = await supabase.from("estimator_estimates").select("*").order("created_at", { ascending: false }).limit(100);
+  const { data, error } = await supabase.from("estimator_estimates").select("*, estimator_followups(handled_at)").order("created_at", { ascending: false }).limit(100);
   const estimates = (data || []) as SavedEstimate[];
 
   return (
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        <EstimateDashboard initialEstimates={estimates} role={profile.role} />
+        {error ? <p role="alert">Estimates could not be loaded. Please try again or contact your administrator.</p> : <EstimateDashboard initialEstimates={estimates} role={profile.role} />}
         <PricingGuidance />
       </main>
       <Footer />

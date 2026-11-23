@@ -9,6 +9,8 @@ export type Profile = {
 };
 
 export type SavedEstimate = {
+  created_by_staff?: boolean | null;
+  estimator_followups?: { handled_at: string } | null;
   id: string;
   created_at: string;
   updated_at: string;

@@ -17,8 +17,33 @@ export function EstimateDashboard({
   const [estimates, setEstimates] = useState(initialEstimates);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [status, setStatus] = useState("");
+  const [handlingId, setHandlingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState("all");
+  const waiting = estimates.filter(item => item.created_by_staff === false && !item.estimator_followups);
+  const visible = estimates.filter(item => filter === "all" || (filter === "waiting" ? item.created_by_staff === false && !item.estimator_followups : Boolean(item.estimator_followups)));
   const totalPipeline = estimates.reduce((sum, estimate) => sum + Number(estimate.annual_gross), 0);
   const canDelete = role === "admin";
+
+  async function toggleHandled(estimate: SavedEstimate) {
+    setHandlingId(estimate.id);
+    setStatus("");
+    try {
+      const supabase = createClient();
+      if (estimate.estimator_followups) {
+        const { error } = await supabase.from("estimator_followups").delete().eq("estimate_id", estimate.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("estimator_followups").insert({ estimate_id: estimate.id });
+        if (error && error.code !== "23505") throw error;
+      }
+      const { data, error } = await supabase.from("estimator_followups").select("handled_at").eq("estimate_id", estimate.id).maybeSingle();
+      if (error) throw error;
+      if (Boolean(data) === Boolean(estimate.estimator_followups)) throw new Error("Follow-up status did not change. Please refresh and try again.");
+      setEstimates(current => current.map(item => item.id === estimate.id ? { ...item, estimator_followups: data } : item));
+    } catch (error) {
+      setStatus(error && typeof error === "object" && "message" in error ? String(error.message) : "Could not update follow-up status.");
+    } finally { setHandlingId(null); }
+  }
 
   async function deleteEstimate(estimate: SavedEstimate) {
     const confirmed = window.confirm(
@@ -63,6 +88,8 @@ export function EstimateDashboard({
           <h2>Recent estimates</h2>
           <span className="badge">{estimates.length} saved</span>
         </div>
+        <p className="form-help">{waiting.length} owner submissions awaiting help in the latest {estimates.length} estimates. Handling an inquiry removes it from Mission’s open revenue total; you can reopen it anytime.</p>
+        <label>Show estimates <select value={filter} onChange={event => setFilter(event.target.value)}><option value="all">All recent estimates</option><option value="waiting">Owners awaiting help</option><option value="handled">Handled</option></select></label>
         {status && <div className={`form-status ${status.startsWith("Deleted") ? "success" : "error"}`}>{status}</div>}
         <div className="table-wrap">
           <table className="table">
@@ -77,7 +104,7 @@ export function EstimateDashboard({
               </tr>
             </thead>
             <tbody>
-              {estimates.map((estimate) => (
+              {visible.map((estimate) => (
                 <tr key={estimate.id}>
                   <td><strong>{estimate.owner_name}</strong><br /><span className="form-help">{estimate.owner_email || "Employee prepared"}</span></td>
                   <td>{estimate.property_address}<br /><span className="form-help">{estimate.bedrooms} · {estimate.market}</span></td>
@@ -85,6 +112,10 @@ export function EstimateDashboard({
                   <td><strong>{currency.format(estimate.annual_gross)}</strong></td>
                   <td><a href={`tel:${estimate.phone}`} style={{ color: "#0877bd", fontWeight: 800 }}>{estimate.phone}</a></td>
                   <td className="table-actions">
+                    <span className="form-help">{estimate.created_by_staff === true ? "Employee prepared" : estimate.created_by_staff === false ? "Owner submitted" : "Source unknown"}</span>
+                    <button type="button" className="button button-secondary" aria-pressed={Boolean(estimate.estimator_followups)} disabled={handlingId === estimate.id} onClick={() => void toggleHandled(estimate)}>
+                      {handlingId === estimate.id ? "Saving…" : estimate.estimator_followups ? "Handled · Reopen" : "Mark handled"}
+                    </button>
                     <Link
                       className="icon-view-button"
                       href={`/dashboard/estimates/${estimate.id}`}
@@ -108,10 +139,10 @@ export function EstimateDashboard({
                   </td>
                 </tr>
               ))}
-              {estimates.length === 0 && (
+              {visible.length === 0 && (
                 <tr>
                   <td colSpan={6} className="empty-state">
-                    No estimates yet. <Link href="/estimate" style={{ color: "#0877bd" }}>Create the first one <ArrowRight size={14} /></Link>
+                    No estimates match this view. <Link href="/estimate" style={{ color: "#0877bd" }}>Create an estimate <ArrowRight size={14} /></Link>
                   </td>
                 </tr>
               )}
